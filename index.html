@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>個案解讀和療癒建議 by 凱特</title>
   
-  <!-- 引入第三方庫：JSZip, FileSaver & 經典現代黑體 Noto Sans TC -->
+  <!-- 引入第三方庫：JSZip, FileSaver, Noto Sans TC & HEIC 轉檔庫 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
@@ -33,7 +34,7 @@
       color: var(--pantone-dark);
       margin: 0;
       padding: 40px 20px;
-      line-height: 1.95; /* 適度放大行高，提升舒適度 */
+      line-height: 1.95;
     }
 
     .container {
@@ -49,7 +50,7 @@
     h1.app-title {
       text-align: center;
       color: var(--pantone-purple);
-      font-size: 30px; /* 大標題放大 */
+      font-size: 30px;
       font-weight: 700;
       letter-spacing: 2px;
       margin-top: 0;
@@ -65,7 +66,7 @@
     label {
       display: block;
       font-weight: 700;
-      font-size: 18px; /* 標籤字體放大 */
+      font-size: 18px;
       margin-bottom: 10px;
       color: var(--pantone-purple);
       letter-spacing: 0.5px;
@@ -77,7 +78,7 @@
       border: 1.5px solid #dcd7ce;
       border-radius: 10px;
       font-family: inherit;
-      font-size: 17px; /* 輸入框字體放大 */
+      font-size: 17px;
       background-color: #fdfdfd;
       color: var(--pantone-dark);
       transition: all 0.25s ease;
@@ -104,6 +105,13 @@
       flex: 1;
     }
 
+    .upload-status {
+      font-size: 15px;
+      color: var(--pantone-purple);
+      margin-top: 6px;
+      font-weight: 500;
+    }
+
     .btn-group {
       display: flex;
       gap: 20px;
@@ -115,7 +123,7 @@
       padding: 18px 24px;
       border: none;
       border-radius: 35px;
-      font-size: 18px; /* 按鈕字體放大 */
+      font-size: 18px;
       font-weight: 700;
       letter-spacing: 1px;
       cursor: pointer;
@@ -149,13 +157,13 @@
 
     .report-header {
       text-align: center;
-      padding-bottom: 28px;
-      margin-bottom: 35px;
+      padding-bottom: 20px;
+      margin-bottom: 25px;
       border-bottom: 2px solid var(--pantone-sand);
     }
 
     .report-title {
-      font-size: 32px; /* 報告主標題顯眼放大 */
+      font-size: 32px;
       font-weight: 700;
       color: var(--pantone-purple);
       margin: 0 0 20px 0;
@@ -165,12 +173,30 @@
     .meta-info {
       display: flex;
       justify-content: space-between;
-      font-size: 16px; /* 詮釋資料放大 */
+      font-size: 16px;
       color: var(--pantone-soft-gray);
       background: var(--pantone-light-purple);
       padding: 14px 24px;
       border-radius: 10px;
       font-weight: 500;
+    }
+
+    /* 放置於標題正下方的調亮照片區塊 */
+    .top-image-section {
+      margin: 25px 0 35px 0;
+      text-align: center;
+      page-break-inside: avoid;
+    }
+
+    .top-image-section img {
+      max-width: 100%;
+      max-height: 480px;
+      border-radius: 12px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+      border: 1px solid var(--pantone-sand);
+      
+      /* 大幅調亮濾鏡：提升 60% 亮度 + 10% 對比度 + 輕微曝光修復 */
+      filter: brightness(1.6) contrast(1.1) saturate(1.05);
     }
 
     .section-box {
@@ -183,7 +209,7 @@
     }
 
     .section-title {
-      font-size: 21px; /* 區塊標題放大 */
+      font-size: 21px;
       color: var(--pantone-purple);
       margin-top: 0;
       margin-bottom: 16px;
@@ -194,26 +220,8 @@
     .section-content {
       white-space: pre-line;
       line-height: 1.95;
-      font-size: 18px; /* 內文全面放大至 18px，老人家清晰閱讀 */
+      font-size: 18px;
       color: #2b292c;
-    }
-
-    /* 獨立的照片區塊 (不包在第四項內) */
-    .standalone-image-section {
-      margin: 35px 0;
-      text-align: center;
-      page-break-inside: avoid;
-    }
-
-    .standalone-image-section img {
-      max-width: 100%;
-      max-height: 520px;
-      border-radius: 12px;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-      border: 1px solid var(--pantone-sand);
-      
-      /* 自動調亮照片濾鏡：提升 25% 亮度與 5% 對比 */
-      filter: brightness(1.25) contrast(1.05);
     }
 
     #card-canvas {
@@ -267,6 +275,12 @@
     </div>
 
     <div class="form-group">
+      <label>上傳牌陣照片（支援 JPG, PNG, HEIC 格式）</label>
+      <input type="file" id="spreadImage" accept="image/*, .heic, .HEIC">
+      <div id="uploadStatus" class="upload-status"></div>
+    </div>
+
+    <div class="form-group">
       <label>一、直覺收訊—宇宙源頭、你的高我、靈性幕後團隊</label>
       <textarea id="sec1" placeholder="輸入直覺收訊內容..."></textarea>
     </div>
@@ -289,11 +303,6 @@
     <div class="form-group">
       <label>四、神諭卡資料</label>
       <textarea id="sec4" placeholder="輸入神諭卡指引與建議..."></textarea>
-    </div>
-
-    <div class="form-group">
-      <label>上傳牌陣照片</label>
-      <input type="file" id="spreadImage" accept="image/*">
     </div>
 
     <div class="form-group">
@@ -325,6 +334,9 @@
     </div>
   </div>
 
+  <!-- 牌陣照片放置於標題第一頁下方 -->
+  <div class="top-image-section" id="out-img-container"></div>
+
   <div class="section-box">
     <h2 class="section-title">一、直覺收訊—宇宙源頭、你的高我、靈性幕後團隊</h2>
     <div class="section-content" id="out-sec1"></div>
@@ -352,9 +364,6 @@
     <div class="section-content" id="out-sec4"></div>
   </div>
 
-  <!-- 照片獨立在第四項外面，自動調亮 -->
-  <div class="standalone-image-section" id="out-img-container"></div>
-
   <div class="section-box">
     <h2 class="section-title">五、推薦療癒清理的資料</h2>
     <div class="section-content" id="out-sec5"></div>
@@ -372,18 +381,49 @@
   // 預設日期設定
   document.getElementById('readDate').valueAsDate = new Date();
 
-  // 儲存圖片 DataURL 避免破圖
+  // 儲存圖片 DataURL (支援 HEIC 自動轉換與載入)
   let uploadedImgDataUrl = "";
-  document.getElementById('spreadImage').addEventListener('change', function(e) {
+  const uploadStatus = document.getElementById('uploadStatus');
+
+  document.getElementById('spreadImage').addEventListener('change', async function(e) {
     const file = e.target.files[0];
-    if (file) {
+    if (!file) {
+      uploadedImgDataUrl = "";
+      uploadStatus.innerText = "";
+      return;
+    }
+
+    const fileName = file.name.toLowerCase();
+    
+    // 檢測是否為 HEIC / HEIF 格式
+    if (fileName.endsWith('.heic') || fileName.endsWith('.heif')) {
+      uploadStatus.innerText = "⏳ 正在處理 iPhone HEIC 圖片轉換中，請稍候...";
+      try {
+        const conversionResult = await heic2any({
+          blob: file,
+          toType: "image/png",
+          quality: 0.9
+        });
+        const blob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          uploadedImgDataUrl = evt.target.result;
+          uploadStatus.innerText = "✓ HEIC 照片轉換完成並已成功載入！";
+        };
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        console.error(error);
+        uploadStatus.innerText = "❌ HEIC 圖片解析失敗，請重新嘗試或更換為 JPG/PNG。";
+      }
+    } else {
+      // 一般 JPG / PNG 格式處理
+      uploadStatus.innerText = "⏳ 正在載入照片...";
       const reader = new FileReader();
       reader.onload = function(evt) {
         uploadedImgDataUrl = evt.target.result;
-      }
+        uploadStatus.innerText = "✓ 照片已成功載入！";
+      };
       reader.readAsDataURL(file);
-    } else {
-      uploadedImgDataUrl = "";
     }
   });
 
@@ -391,7 +431,7 @@
   function generatePDF() {
     const clientName = document.getElementById('clientName').value.trim() || '個案';
     
-    // 設定預設 PDF 下載檔名：[個案名稱]的解讀和療癒建議.pdf
+    // 設定 PDF 檔名：[個案名稱]的解讀和療癒建議
     document.title = `${clientName}的解讀和療癒建議`;
 
     document.getElementById('out-client').innerText = '個案：' + clientName;
@@ -413,7 +453,7 @@
     document.getElementById('out-sec5').innerText = document.getElementById('sec5').value;
     document.getElementById('out-sec6').innerText = document.getElementById('sec6').value;
 
-    // 將圖片渲染至獨立的照片區塊中
+    // 將圖片渲染至第一頁標題下方
     const imgContainer = document.getElementById('out-img-container');
     imgContainer.innerHTML = '';
     if (uploadedImgDataUrl) {
@@ -424,10 +464,10 @@
 
     setTimeout(() => {
       window.print();
-    }, 200);
+    }, 250);
   }
 
-  // 2. Canva 極簡風小卡（包含單項正方形卡片 + 總覽長方形卡片）
+  // 2. Canva 極簡風小卡（包含單張正方形卡片 + 總覽長方形卡片）
   async function generateAffirmationCards() {
     const textRaw = document.getElementById('sec6').value.trim();
     if (!textRaw) {
@@ -541,7 +581,7 @@
     ctx.textAlign = 'left';
 
     let listStartY = 230;
-    const itemLineHeight = Math.min(62, 1500 / lines.length); // 根據數量自動彈性行高
+    const itemLineHeight = Math.min(62, 1500 / lines.length);
 
     lines.forEach((line, idx) => {
       let displayLine = `${idx + 1}. ${line}`;
