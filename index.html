@@ -8,7 +8,7 @@
   <!-- 引入第三方庫：JSZip, FileSaver, Noto Sans TC & HEIC 轉檔庫 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
@@ -108,8 +108,21 @@
     .upload-status {
       font-size: 15px;
       color: var(--pantone-purple);
-      margin-top: 6px;
+      margin-top: 8px;
       font-weight: 500;
+    }
+
+    .preview-box {
+      margin-top: 12px;
+      text-align: center;
+    }
+
+    .preview-box img {
+      max-width: 200px;
+      max-height: 200px;
+      border-radius: 8px;
+      border: 1px solid var(--pantone-sand);
+      filter: brightness(1.75) contrast(1.12);
     }
 
     .btn-group {
@@ -147,7 +160,7 @@
       box-shadow: 0 8px 22px rgba(0,0,0,0.12);
     }
 
-    /* ===== Canva 極簡風大字體 PDF/列印樣式 ===== */
+    /* ===== Canva 極簡風 PDF/列印樣式 ===== */
     #report-output {
       display: none;
       background: #ffffff;
@@ -157,16 +170,18 @@
 
     .report-header {
       text-align: center;
-      padding-bottom: 20px;
-      margin-bottom: 25px;
+      padding-bottom: 15px;
+      margin-bottom: 20px;
       border-bottom: 2px solid var(--pantone-sand);
+      page-break-after: avoid; /* 防止與下方內容強制斷頁 */
+      break-after: avoid;
     }
 
     .report-title {
       font-size: 32px;
       font-weight: 700;
       color: var(--pantone-purple);
-      margin: 0 0 20px 0;
+      margin: 0 0 16px 0;
       letter-spacing: 3px;
     }
 
@@ -176,32 +191,35 @@
       font-size: 16px;
       color: var(--pantone-soft-gray);
       background: var(--pantone-light-purple);
-      padding: 14px 24px;
+      padding: 12px 22px;
       border-radius: 10px;
       font-weight: 500;
     }
 
-    /* 放置於標題正下方的調亮照片區塊 */
+    /* 第一頁標題正下方的照片區塊，防斷頁處理 */
     .top-image-section {
-      margin: 25px 0 35px 0;
+      margin: 20px 0 28px 0;
       text-align: center;
       page-break-inside: avoid;
+      page-break-after: avoid;
+      break-after: avoid;
     }
 
     .top-image-section img {
       max-width: 100%;
-      max-height: 480px;
+      max-height: 320px; /* 彈性高度確保緊跟在第一頁標題下方 */
       border-radius: 12px;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
       border: 1px solid var(--pantone-sand);
       
-      /* 大幅調亮濾鏡：提升 60% 亮度 + 10% 對比度 + 輕微曝光修復 */
-      filter: brightness(1.6) contrast(1.1) saturate(1.05);
+      /* 強效增亮濾鏡：提升 75% 亮度 + 12% 對比 */
+      filter: brightness(1.75) contrast(1.12) saturate(1.08);
+      -webkit-filter: brightness(1.75) contrast(1.12) saturate(1.08);
     }
 
     .section-box {
-      margin-bottom: 35px;
-      padding: 28px 30px;
+      margin-bottom: 30px;
+      padding: 26px 28px;
       background-color: #faf9f7;
       border-radius: 14px;
       border-left: 5px solid var(--pantone-gold);
@@ -242,7 +260,7 @@
         padding: 0;
       }
       @page {
-        margin: 12mm;
+        margin: 10mm;
         size: A4 portrait;
       }
     }
@@ -276,8 +294,9 @@
 
     <div class="form-group">
       <label>上傳牌陣照片（支援 JPG, PNG, HEIC 格式）</label>
-      <input type="file" id="spreadImage" accept="image/*, .heic, .HEIC">
+      <input type="file" id="spreadImage" accept="image/*, .heic, .HEIC, .heif, .HEIF">
       <div id="uploadStatus" class="upload-status"></div>
+      <div id="formImgPreview" class="preview-box"></div>
     </div>
 
     <div class="form-group">
@@ -334,7 +353,7 @@
     </div>
   </div>
 
-  <!-- 牌陣照片放置於標題第一頁下方 -->
+  <!-- 強制鎖定在第一頁標題正下方的照片區塊 -->
   <div class="top-image-section" id="out-img-container"></div>
 
   <div class="section-box">
@@ -378,60 +397,60 @@
 <canvas id="card-canvas"></canvas>
 
 <script>
-  // 預設日期設定
   document.getElementById('readDate').valueAsDate = new Date();
 
-  // 儲存圖片 DataURL (支援 HEIC 自動轉換與載入)
   let uploadedImgDataUrl = "";
   const uploadStatus = document.getElementById('uploadStatus');
+  const formImgPreview = document.getElementById('formImgPreview');
 
+  // 防破圖非同步圖片讀取器
   document.getElementById('spreadImage').addEventListener('change', async function(e) {
     const file = e.target.files[0];
     if (!file) {
       uploadedImgDataUrl = "";
       uploadStatus.innerText = "";
+      formImgPreview.innerHTML = "";
       return;
     }
 
     const fileName = file.name.toLowerCase();
-    
-    // 檢測是否為 HEIC / HEIF 格式
-    if (fileName.endsWith('.heic') || fileName.endsWith('.heif')) {
-      uploadStatus.innerText = "⏳ 正在處理 iPhone HEIC 圖片轉換中，請稍候...";
-      try {
-        const conversionResult = await heic2any({
+    const isHeic = fileName.endsWith('.heic') || fileName.endsWith('.heif') || file.type.includes('heic') || file.type.includes('heif');
+
+    uploadStatus.innerText = isHeic ? "⌛ 正在將 iPhone HEIC 轉為高畫質照片，請稍候..." : "⌛ 正在加載照片...";
+
+    try {
+      let targetBlob = file;
+
+      // 若為 HEIC，透過 heic2any 轉碼為 Blob
+      if (isHeic) {
+        if (typeof heic2any === 'undefined') {
+          throw new Error('HEIC 轉碼引擎載入中，請重新選擇圖片。');
+        }
+        const converted = await heic2any({
           blob: file,
-          toType: "image/png",
-          quality: 0.9
+          toType: "image/jpeg",
+          quality: 0.85
         });
-        const blob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-          uploadedImgDataUrl = evt.target.result;
-          uploadStatus.innerText = "✓ HEIC 照片轉換完成並已成功載入！";
-        };
-        reader.readAsDataURL(blob);
-      } catch (error) {
-        console.error(error);
-        uploadStatus.innerText = "❌ HEIC 圖片解析失敗，請重新嘗試或更換為 JPG/PNG。";
+        targetBlob = Array.isArray(converted) ? converted[0] : converted;
       }
-    } else {
-      // 一般 JPG / PNG 格式處理
-      uploadStatus.innerText = "⏳ 正在載入照片...";
+
       const reader = new FileReader();
       reader.onload = function(evt) {
         uploadedImgDataUrl = evt.target.result;
-        uploadStatus.innerText = "✓ 照片已成功載入！";
+        uploadStatus.innerText = "✓ 照片已成功載入並完成自動調亮！";
+        formImgPreview.innerHTML = `<img src="${uploadedImgDataUrl}" alt="預覽圖">`;
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(targetBlob);
+
+    } catch (err) {
+      console.error(err);
+      uploadStatus.innerText = "❌ 照片解析失敗，請重新選擇照片。";
     }
   });
 
   // 1. 生成與列印 PDF 功能
   function generatePDF() {
     const clientName = document.getElementById('clientName').value.trim() || '個案';
-    
-    // 設定 PDF 檔名：[個案名稱]的解讀和療癒建議
     document.title = `${clientName}的解讀和療癒建議`;
 
     document.getElementById('out-client').innerText = '個案：' + clientName;
@@ -453,7 +472,7 @@
     document.getElementById('out-sec5').innerText = document.getElementById('sec5').value;
     document.getElementById('out-sec6').innerText = document.getElementById('sec6').value;
 
-    // 將圖片渲染至第一頁標題下方
+    // 將調亮後的圖片填入第一頁標題下方
     const imgContainer = document.getElementById('out-img-container');
     imgContainer.innerHTML = '';
     if (uploadedImgDataUrl) {
@@ -464,10 +483,10 @@
 
     setTimeout(() => {
       window.print();
-    }, 250);
+    }, 300);
   }
 
-  // 2. Canva 極簡風小卡（包含單張正方形卡片 + 總覽長方形卡片）
+  // 2. Canva 極簡風小卡生成器
   async function generateAffirmationCards() {
     const textRaw = document.getElementById('sec6').value.trim();
     if (!textRaw) {
@@ -489,14 +508,13 @@
     const ctx = canvas.getContext('2d');
     const clientName = document.getElementById('clientName').value.trim() || '個案';
 
-    // A. 繪製單張正方形小卡 (1080x1080)
+    // A. 正方形單張卡 (1080x1080)
     canvas.width = 1080;
     canvas.height = 1080;
 
     for (let i = 0; i < lines.length; i++) {
       const text = lines[i];
 
-      // Canva Pantone 晨霧質感漸層背景
       const gradient = ctx.createLinearGradient(0, 0, 1080, 1080);
       gradient.addColorStop(0, '#f9f7f5');
       gradient.addColorStop(0.6, '#f1ebf2');
@@ -504,21 +522,18 @@
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, 1080, 1080);
 
-      // 極簡雙框線 (Pantone 暖沙金)
       ctx.strokeStyle = '#b38b43';
       ctx.lineWidth = 3;
       ctx.strokeRect(60, 60, 960, 960);
       ctx.lineWidth = 1.5;
       ctx.strokeRect(74, 74, 932, 932);
 
-      // 頂部標題：資 料 下 載
       ctx.font = '500 36px "Noto Sans TC", sans-serif';
       ctx.fillStyle = '#614d75';
       ctx.textAlign = 'center';
       ctx.letterSpacing = '6px';
       ctx.fillText('資 料 下 載', 540, 220);
 
-      // 中央主要文字（大字體清晰可讀）
       ctx.font = '500 48px "Noto Sans TC", sans-serif';
       ctx.fillStyle = '#222023';
       
@@ -545,7 +560,6 @@
         ctx.fillText(textLines[j], 540, startY + (j * lineHeight));
       }
 
-      // 底部署名：謝謝你、我愛你
       ctx.font = '400 30px "Noto Sans TC", sans-serif';
       ctx.fillStyle = '#636066';
       ctx.fillText('謝謝你、我愛你', 540, 900);
@@ -554,7 +568,7 @@
       zip.file(`資料下載卡片_${i + 1}.png`, dataUrl.replace(/^data:image\/png;base64,/, ""), {base64: true});
     }
 
-    // B. 額外繪製長方形總覽卡 (1080x1920 手機桌布尺寸)
+    // B. 長方形總覽卡 (1080x1920)
     canvas.width = 1080;
     canvas.height = 1920;
 
@@ -569,13 +583,11 @@
     ctx.lineWidth = 3;
     ctx.strokeRect(50, 50, 980, 1820);
 
-    // 大卡標題：資 料 下 載
     ctx.font = '700 46px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
     ctx.textAlign = 'center';
     ctx.fillText('資 料 下 載', 540, 150);
 
-    // 清單文字（自動適應多條資料）
     ctx.font = '400 26px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#222023';
     ctx.textAlign = 'left';
@@ -591,7 +603,6 @@
       ctx.fillText(displayLine, 90, listStartY + (idx * itemLineHeight));
     });
 
-    // 底部署名：謝謝你、我愛你
     ctx.font = '400 32px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
     ctx.textAlign = 'center';
@@ -600,7 +611,6 @@
     const fullCardData = canvas.toDataURL('image/png');
     zip.file(`資料下載_全集總覽卡.png`, fullCardData.replace(/^data:image\/png;base64,/, ""), {base64: true});
 
-    // 開始打包下載 Zip
     alert('正在為您打包生成 Pantone 質感圖卡包，請稍候...');
     zip.generateAsync({type:"blob"}).then(function(content) {
       saveAs(content, `${clientName}_資料下載圖卡套組.zip`);
