@@ -399,8 +399,8 @@
   const uploadStatus = document.getElementById('uploadStatus');
   const formImgPreview = document.getElementById('formImgPreview');
 
-  // Canvas 3x3 卷積銳化矩陣（專治牌卡邊緣與筆劃模糊）
-  function sharpenImage(imgObj, brightnessFactor) {
+  // Canvas 3x3 卷積銳化矩陣 + 自適應高光防過曝亮度曲線
+  function processImageData(imgObj, brightnessFactor) {
     const canvas = document.getElementById('sharpen-canvas');
     const ctx = canvas.getContext('2d');
     
@@ -413,7 +413,7 @@
     const width = canvas.width;
     const height = canvas.height;
     
-    // 銳化卷積陣列 [0,-1,0, -1,5,-1, 0,-1,0]
+    // 銳化卷積陣列
     const kernel = [
       0, -0.6, 0,
       -0.6, 3.4, -0.6,
@@ -435,8 +435,13 @@
             }
           }
           const outIdx = (y * width + x) * 4 + c;
-          // 加上亮度因子修正
-          outData[outIdx] = Math.min(255, Math.max(0, res * brightnessFactor));
+          
+          // 計算增益亮度：高光自動平滑防過曝
+          let val = res * brightnessFactor;
+          if (val > 220) {
+            val = 220 + (val - 220) * 0.5; // 防止極亮區域死白
+          }
+          outData[outIdx] = Math.min(255, Math.max(0, val));
         }
         const alphaIdx = (y * width + x) * 4 + 3;
         outData[alphaIdx] = data[alphaIdx];
@@ -447,7 +452,7 @@
     return canvas.toDataURL('image/jpeg', 0.95);
   }
 
-  // 防過曝 & 牌卡字跡像素級銳化讀取器
+  // 獨立精準亮度調節：HEIC (0.92 防過曝) vs PNG/JPG (1.22 明亮絕不暗沉)
   document.getElementById('spreadImage').addEventListener('change', async function(e) {
     const file = e.target.files[0];
     if (!file) {
@@ -460,7 +465,7 @@
     const fileName = file.name.toLowerCase();
     const isHeic = fileName.endsWith('.heic') || fileName.endsWith('.heif') || file.type.includes('heic') || file.type.includes('heif');
 
-    uploadStatus.innerText = "⌛ 正在進行圖像像素銳化與文字清晰化處理...";
+    uploadStatus.innerText = "⌛ 正在進行圖像增亮、像素銳化與邊緣清晰化處理...";
 
     try {
       let targetBlob = file;
@@ -481,13 +486,13 @@
       reader.onload = function(evt) {
         const rawImg = new Image();
         rawImg.onload = function() {
-          // HEIC 檔：亮度降至 0.92（防過曝）；PNG / JPG 檔：維持 1.08（絕不過暗）
-          const brightnessFactor = isHeic ? 0.92 : 1.08;
+          // PNG / JPG 大幅感光提升至 1.22；HEIC 保持 0.92 通透不爆光
+          const brightnessFactor = isHeic ? 0.92 : 1.22;
           
-          // 執行像素級字跡銳化
-          uploadedImgDataUrl = sharpenImage(rawImg, brightnessFactor);
+          // 執行增亮與字跡銳化
+          uploadedImgDataUrl = processImageData(rawImg, brightnessFactor);
           
-          uploadStatus.innerText = "✓ 照片處理完成！牌卡文字筆劃與清晰度已大幅提升。";
+          uploadStatus.innerText = "✓ 照片處理完成！PNG 亮度已大幅提升，字跡邊緣清晰。";
           formImgPreview.innerHTML = `<img src="${uploadedImgDataUrl}" alt="預覽圖">`;
         };
         rawImg.src = evt.target.result;
@@ -524,7 +529,7 @@
     document.getElementById('out-sec5').innerText = document.getElementById('sec5').value;
     document.getElementById('out-sec6').innerText = document.getElementById('sec6').value;
 
-    // 將銳化後的清晰圖片填入第一頁標題正下方
+    // 將銳化與增亮後的圖片填入第一頁標題正下方
     const imgContainer = document.getElementById('out-img-container');
     imgContainer.innerHTML = '';
     if (uploadedImgDataUrl) {
