@@ -118,11 +118,11 @@
     }
 
     .preview-box img {
-      max-width: 200px;
-      max-height: 200px;
+      max-width: 240px;
+      max-height: 240px;
       border-radius: 8px;
       border: 1px solid var(--pantone-sand);
-      filter: brightness(1.75) contrast(1.12);
+      image-rendering: -webkit-optimize-contrast;
     }
 
     .btn-group {
@@ -171,9 +171,9 @@
     .report-header {
       text-align: center;
       padding-bottom: 15px;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
       border-bottom: 2px solid var(--pantone-sand);
-      page-break-after: avoid; /* 防止與下方內容強制斷頁 */
+      page-break-after: avoid;
       break-after: avoid;
     }
 
@@ -198,7 +198,7 @@
 
     /* 第一頁標題正下方的照片區塊，防斷頁處理 */
     .top-image-section {
-      margin: 20px 0 28px 0;
+      margin: 18px 0 25px 0;
       text-align: center;
       page-break-inside: avoid;
       page-break-after: avoid;
@@ -207,19 +207,19 @@
 
     .top-image-section img {
       max-width: 100%;
-      max-height: 320px; /* 彈性高度確保緊跟在第一頁標題下方 */
+      max-height: 380px; /* 加大顯示區域，看得更清楚 */
       border-radius: 12px;
       box-shadow: 0 6px 20px rgba(0,0,0,0.08);
       border: 1px solid var(--pantone-sand);
       
-      /* 強效增亮濾鏡：提升 75% 亮度 + 12% 對比 */
-      filter: brightness(1.75) contrast(1.12) saturate(1.08);
-      -webkit-filter: brightness(1.75) contrast(1.12) saturate(1.08);
+      /* 邊緣銳化：讓牌卡上的文字邊線浮現更加清晰 */
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
     }
 
     .section-box {
-      margin-bottom: 30px;
-      padding: 26px 28px;
+      margin-bottom: 28px;
+      padding: 24px 28px;
       background-color: #faf9f7;
       border-radius: 14px;
       border-left: 5px solid var(--pantone-gold);
@@ -400,14 +400,16 @@
   document.getElementById('readDate').valueAsDate = new Date();
 
   let uploadedImgDataUrl = "";
+  let activeFilterCss = ""; // 動態紀錄對應格式的最佳清晰度濾鏡
   const uploadStatus = document.getElementById('uploadStatus');
   const formImgPreview = document.getElementById('formImgPreview');
 
-  // 防破圖非同步圖片讀取器
+  // 高畫質防過曝 & 字跡邊緣清晰化讀取器
   document.getElementById('spreadImage').addEventListener('change', async function(e) {
     const file = e.target.files[0];
     if (!file) {
       uploadedImgDataUrl = "";
+      activeFilterCss = "";
       uploadStatus.innerText = "";
       formImgPreview.innerHTML = "";
       return;
@@ -416,29 +418,35 @@
     const fileName = file.name.toLowerCase();
     const isHeic = fileName.endsWith('.heic') || fileName.endsWith('.heif') || file.type.includes('heic') || file.type.includes('heif');
 
-    uploadStatus.innerText = isHeic ? "⌛ 正在將 iPhone HEIC 轉為高畫質照片，請稍候..." : "⌛ 正在加載照片...";
+    uploadStatus.innerText = isHeic ? "⌛ 正在進行無損 HEIC 高畫質解析與清晰化..." : "⌛ 正在進行高畫質處理...";
 
     try {
       let targetBlob = file;
 
-      // 若為 HEIC，透過 heic2any 轉碼為 Blob
+      // HEIC 無損品質轉碼 (quality: 1.0)
       if (isHeic) {
         if (typeof heic2any === 'undefined') {
-          throw new Error('HEIC 轉碼引擎載入中，請重新選擇圖片。');
+          throw new Error('轉碼引擎載入中，請重新選擇圖片。');
         }
         const converted = await heic2any({
           blob: file,
           toType: "image/jpeg",
-          quality: 0.85
+          quality: 1.0
         });
         targetBlob = Array.isArray(converted) ? converted[0] : converted;
+        
+        // HEIC 專屬濾鏡：微亮 + 高對比 + 文字銳利化（解決 HEIC 過曝問題）
+        activeFilterCss = "brightness(1.15) contrast(1.35) saturate(1.10)";
+      } else {
+        // PNG / JPG 專屬濾鏡：比原本再暗一點點 (0.95) + 高對比 (1.30)，讓字跡浮現
+        activeFilterCss = "brightness(0.95) contrast(1.30) saturate(1.05)";
       }
 
       const reader = new FileReader();
       reader.onload = function(evt) {
         uploadedImgDataUrl = evt.target.result;
-        uploadStatus.innerText = "✓ 照片已成功載入並完成自動調亮！";
-        formImgPreview.innerHTML = `<img src="${uploadedImgDataUrl}" alt="預覽圖">`;
+        uploadStatus.innerText = "✓ 照片已成功載入！文字清晰度已完成優化。";
+        formImgPreview.innerHTML = `<img src="${uploadedImgDataUrl}" style="filter: ${activeFilterCss}; -webkit-filter: ${activeFilterCss};" alt="預覽圖">`;
       };
       reader.readAsDataURL(targetBlob);
 
@@ -472,12 +480,14 @@
     document.getElementById('out-sec5').innerText = document.getElementById('sec5').value;
     document.getElementById('out-sec6').innerText = document.getElementById('sec6').value;
 
-    // 將調亮後的圖片填入第一頁標題下方
+    // 將最佳優化後的圖片填入第一頁標題下方
     const imgContainer = document.getElementById('out-img-container');
     imgContainer.innerHTML = '';
     if (uploadedImgDataUrl) {
       const img = document.createElement('img');
       img.src = uploadedImgDataUrl;
+      img.style.filter = activeFilterCss;
+      img.style.webkitFilter = activeFilterCss;
       imgContainer.appendChild(img);
     }
 
