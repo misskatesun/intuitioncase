@@ -124,13 +124,6 @@
       border: 1px solid var(--pantone-sand);
     }
 
-    /* PNG / JPG 專用增亮效果 */
-    .preview-box img.png-brighten,
-    .top-image-section img.png-brighten {
-      filter: brightness(1.75) contrast(1.12) saturate(1.08);
-      -webkit-filter: brightness(1.75) contrast(1.12) saturate(1.08);
-    }
-
     .btn-group {
       display: flex;
       gap: 20px;
@@ -402,9 +395,27 @@
   document.getElementById('readDate').valueAsDate = new Date();
 
   let uploadedImgDataUrl = "";
-  let isPngOrJpg = false;
   const uploadStatus = document.getElementById('uploadStatus');
   const formImgPreview = document.getElementById('formImgPreview');
+
+  // PNG/JPG 高畫質渲染與適度增亮處理器
+  function processHighResImage(rawImg) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = function() {
+        const cvs = document.createElement('canvas');
+        cvs.width = img.width;
+        cvs.height = img.height;
+        const ctx = cvs.getContext('2d');
+        
+        // 採用 Canvas 原生高品質濾鏡增亮，保持 100% 原始超高解析度
+        ctx.filter = "brightness(1.35) contrast(1.08)";
+        ctx.drawImage(img, 0, 0);
+        resolve(cvs.toDataURL('image/jpeg', 0.95));
+      };
+      img.src = rawImg;
+    });
+  }
 
   document.getElementById('spreadImage').addEventListener('change', async function(e) {
     const file = e.target.files[0];
@@ -417,14 +428,10 @@
 
     const fileName = file.name.toLowerCase();
     const isHeic = fileName.endsWith('.heic') || fileName.endsWith('.heif') || file.type.includes('heic') || file.type.includes('heif');
-    isPngOrJpg = !isHeic;
 
-    uploadStatus.innerText = isHeic ? "⌛ 正在解析 HEIC 照片..." : "⌛ 正在加載照片...";
+    uploadStatus.innerText = isHeic ? "⌛ 正在解析 HEIC 照片..." : "⌛ 正在處理高畫質照片...";
 
     try {
-      let targetBlob = file;
-
-      // HEIC 使用最新極速轉檔機制
       if (isHeic) {
         if (typeof heic2any === 'undefined') {
           throw new Error('HEIC 轉碼引擎載入中，請重新選擇圖片。');
@@ -434,18 +441,24 @@
           toType: "image/jpeg",
           quality: 0.95
         });
-        targetBlob = Array.isArray(converted) ? converted[0] : converted;
+        const targetBlob = Array.isArray(converted) ? converted[0] : converted;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          uploadedImgDataUrl = evt.target.result;
+          uploadStatus.innerText = "✓ HEIC 照片已成功載入並完成解析！";
+          formImgPreview.innerHTML = `<img src="${uploadedImgDataUrl}" alt="預覽圖">`;
+        };
+        reader.readAsDataURL(targetBlob);
+      } else {
+        // 一般 PNG/JPG 使用原生 FileReader + 高畫質 Canvas 增亮
+        const reader = new FileReader();
+        reader.onload = async function(evt) {
+          uploadedImgDataUrl = await processHighResImage(evt.target.result);
+          uploadStatus.innerText = "✓ 高畫質照片已成功載入並完成優化！";
+          formImgPreview.innerHTML = `<img src="${uploadedImgDataUrl}" alt="預覽圖">`;
+        };
+        reader.readAsDataURL(file);
       }
-
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        uploadedImgDataUrl = evt.target.result;
-        uploadStatus.innerText = isPngOrJpg ? "✓ 照片已成功載入並完成 75% 強效調亮！" : "✓ HEIC 照片解析完成！";
-        
-        const imgClass = isPngOrJpg ? 'class="png-brighten"' : '';
-        formImgPreview.innerHTML = `<img src="${uploadedImgDataUrl}" ${imgClass} alt="預覽圖">`;
-      };
-      reader.readAsDataURL(targetBlob);
 
     } catch (err) {
       console.error(err);
@@ -483,9 +496,6 @@
     if (uploadedImgDataUrl) {
       const img = document.createElement('img');
       img.src = uploadedImgDataUrl;
-      if (isPngOrJpg) {
-        img.classList.add('png-brighten');
-      }
       imgContainer.appendChild(img);
     }
 
