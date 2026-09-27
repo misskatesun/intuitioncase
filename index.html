@@ -118,11 +118,10 @@
     }
 
     .preview-box img {
-      max-width: 240px;
-      max-height: 240px;
+      max-width: 260px;
+      max-height: 260px;
       border-radius: 8px;
       border: 1px solid var(--pantone-sand);
-      image-rendering: -webkit-optimize-contrast;
     }
 
     .btn-group {
@@ -207,14 +206,10 @@
 
     .top-image-section img {
       max-width: 100%;
-      max-height: 380px; /* 加大顯示區域，看得更清楚 */
+      max-height: 380px;
       border-radius: 12px;
       box-shadow: 0 6px 20px rgba(0,0,0,0.08);
       border: 1px solid var(--pantone-sand);
-      
-      /* 邊緣銳化：讓牌卡上的文字邊線浮現更加清晰 */
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
     }
 
     .section-box {
@@ -242,7 +237,7 @@
       color: #2b292c;
     }
 
-    #card-canvas {
+    #card-canvas, #sharpen-canvas {
       display: none;
     }
 
@@ -395,21 +390,68 @@
 </div>
 
 <canvas id="card-canvas"></canvas>
+<canvas id="sharpen-canvas"></canvas>
 
 <script>
   document.getElementById('readDate').valueAsDate = new Date();
 
   let uploadedImgDataUrl = "";
-  let activeFilterCss = ""; // 動態紀錄對應格式的最佳清晰度濾鏡
   const uploadStatus = document.getElementById('uploadStatus');
   const formImgPreview = document.getElementById('formImgPreview');
 
-  // 高畫質防過曝 & 字跡邊緣清晰化讀取器
+  // Canvas 3x3 卷積銳化矩陣（專治牌卡邊緣與筆劃模糊）
+  function sharpenImage(imgObj, brightnessFactor) {
+    const canvas = document.getElementById('sharpen-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = imgObj.width;
+    canvas.height = imgObj.height;
+    
+    ctx.drawImage(imgObj, 0, 0);
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imgData.data;
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // 銳化卷積陣列 [0,-1,0, -1,5,-1, 0,-1,0]
+    const kernel = [
+      0, -0.6, 0,
+      -0.6, 3.4, -0.6,
+      0, -0.6, 0
+    ];
+    
+    const output = ctx.createImageData(width, height);
+    const outData = output.data;
+    
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        for (let c = 0; c < 3; c++) {
+          let res = 0;
+          for (let ky = -1; ky <= 1; ky++) {
+            for (let kx = -1; kx <= 1; kx++) {
+              const idx = ((y + ky) * width + (x + kx)) * 4 + c;
+              const kVal = kernel[(ky + 1) * 3 + (kx + 1)];
+              res += data[idx] * kVal;
+            }
+          }
+          const outIdx = (y * width + x) * 4 + c;
+          // 加上亮度因子修正
+          outData[outIdx] = Math.min(255, Math.max(0, res * brightnessFactor));
+        }
+        const alphaIdx = (y * width + x) * 4 + 3;
+        outData[alphaIdx] = data[alphaIdx];
+      }
+    }
+    
+    ctx.putImageData(output, 0, 0);
+    return canvas.toDataURL('image/jpeg', 0.95);
+  }
+
+  // 防過曝 & 牌卡字跡像素級銳化讀取器
   document.getElementById('spreadImage').addEventListener('change', async function(e) {
     const file = e.target.files[0];
     if (!file) {
       uploadedImgDataUrl = "";
-      activeFilterCss = "";
       uploadStatus.innerText = "";
       formImgPreview.innerHTML = "";
       return;
@@ -418,12 +460,11 @@
     const fileName = file.name.toLowerCase();
     const isHeic = fileName.endsWith('.heic') || fileName.endsWith('.heif') || file.type.includes('heic') || file.type.includes('heif');
 
-    uploadStatus.innerText = isHeic ? "⌛ 正在進行無損 HEIC 高畫質解析與清晰化..." : "⌛ 正在進行高畫質處理...";
+    uploadStatus.innerText = "⌛ 正在進行圖像像素銳化與文字清晰化處理...";
 
     try {
       let targetBlob = file;
 
-      // HEIC 無損品質轉碼 (quality: 1.0)
       if (isHeic) {
         if (typeof heic2any === 'undefined') {
           throw new Error('轉碼引擎載入中，請重新選擇圖片。');
@@ -431,22 +472,25 @@
         const converted = await heic2any({
           blob: file,
           toType: "image/jpeg",
-          quality: 1.0
+          quality: 0.95
         });
         targetBlob = Array.isArray(converted) ? converted[0] : converted;
-        
-        // HEIC 專屬濾鏡：微亮 + 高對比 + 文字銳利化（解決 HEIC 過曝問題）
-        activeFilterCss = "brightness(1.15) contrast(1.35) saturate(1.10)";
-      } else {
-        // PNG / JPG 專屬濾鏡：比原本再暗一點點 (0.95) + 高對比 (1.30)，讓字跡浮現
-        activeFilterCss = "brightness(0.95) contrast(1.30) saturate(1.05)";
       }
 
       const reader = new FileReader();
       reader.onload = function(evt) {
-        uploadedImgDataUrl = evt.target.result;
-        uploadStatus.innerText = "✓ 照片已成功載入！文字清晰度已完成優化。";
-        formImgPreview.innerHTML = `<img src="${uploadedImgDataUrl}" style="filter: ${activeFilterCss}; -webkit-filter: ${activeFilterCss};" alt="預覽圖">`;
+        const rawImg = new Image();
+        rawImg.onload = function() {
+          // HEIC 檔：亮度降至 0.92（防過曝）；PNG / JPG 檔：維持 1.08（絕不過暗）
+          const brightnessFactor = isHeic ? 0.92 : 1.08;
+          
+          // 執行像素級字跡銳化
+          uploadedImgDataUrl = sharpenImage(rawImg, brightnessFactor);
+          
+          uploadStatus.innerText = "✓ 照片處理完成！牌卡文字筆劃與清晰度已大幅提升。";
+          formImgPreview.innerHTML = `<img src="${uploadedImgDataUrl}" alt="預覽圖">`;
+        };
+        rawImg.src = evt.target.result;
       };
       reader.readAsDataURL(targetBlob);
 
@@ -480,14 +524,12 @@
     document.getElementById('out-sec5').innerText = document.getElementById('sec5').value;
     document.getElementById('out-sec6').innerText = document.getElementById('sec6').value;
 
-    // 將最佳優化後的圖片填入第一頁標題下方
+    // 將銳化後的清晰圖片填入第一頁標題正下方
     const imgContainer = document.getElementById('out-img-container');
     imgContainer.innerHTML = '';
     if (uploadedImgDataUrl) {
       const img = document.createElement('img');
       img.src = uploadedImgDataUrl;
-      img.style.filter = activeFilterCss;
-      img.style.webkitFilter = activeFilterCss;
       imgContainer.appendChild(img);
     }
 
