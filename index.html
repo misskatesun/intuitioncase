@@ -3,72 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>靈性諮詢與塔羅解讀報告生成器 - 凱特</title>
+  <title>個案解讀和療癒建議 by 凱特</title>
   
-  <!-- 引入需要的第三方庫 -->
+  <!-- 引入第三方庫：JSZip, FileSaver & 經典現代黑體 Noto Sans TC -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 
   <style>
+    /* Canva 風格 Pantone 極簡色系：柔紫 (Pantone 15-3817) & 暖沙金 (Pantone 13-1012) */
     :root {
-      --primary-color: #7b5294;
-      --secondary-color: #cbb4d4;
-      --bg-color: #fdfbf7;
+      --pantone-purple: #726284;
+      --pantone-light-purple: #f3eff5;
+      --pantone-sand: #e8ded2;
+      --pantone-gold: #c5a059;
+      --pantone-dark: #2b292c;
+      --pantone-soft-gray: #78757a;
+      --bg-color: #faf8f5;
       --card-bg: #ffffff;
-      --text-color: #4a4a4a;
-      --accent-gold: #d4af37;
+    }
+
+    * {
+      box-sizing: border-box;
     }
 
     body {
-      font-family: 'Noto Serif TC', serif, pingfang tc, Microsoft JhengHei;
+      font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       background-color: var(--bg-color);
-      color: var(--text-color);
+      color: var(--pantone-dark);
       margin: 0;
-      padding: 20px;
+      padding: 30px 15px;
+      line-height: 1.6;
     }
 
     .container {
-      max-width: 900px;
+      max-width: 850px;
       margin: 0 auto;
       background: var(--card-bg);
-      padding: 40px;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+      padding: 50px 40px;
+      border-radius: 16px;
+      box-shadow: 0 12px 40px rgba(114, 98, 132, 0.08);
+      border: 1px solid rgba(232, 222, 210, 0.5);
     }
 
-    h1 {
+    h1.app-title {
       text-align: center;
-      color: var(--primary-color);
-      margin-bottom: 30px;
+      color: var(--pantone-purple);
+      font-size: 26px;
       font-weight: 700;
       letter-spacing: 2px;
+      margin-top: 0;
+      margin-bottom: 35px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid var(--pantone-sand);
     }
 
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 22px;
     }
 
     label {
       display: block;
-      font-weight: 600;
+      font-weight: 500;
+      font-size: 15px;
       margin-bottom: 8px;
-      color: var(--primary-color);
+      color: var(--pantone-purple);
+      letter-spacing: 0.5px;
     }
 
     input[type="text"], input[type="date"], textarea {
       width: 100%;
-      padding: 12px;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
-      box-sizing: border-box;
+      padding: 14px 16px;
+      border: 1px solid #e3dec;
+      border-radius: 8px;
       font-family: inherit;
       font-size: 14px;
-      background-color: #fafafa;
+      background-color: #fcfbfa;
+      color: var(--pantone-dark);
+      transition: all 0.25s ease;
+    }
+
+    input[type="text"]:focus, input[type="date"]:focus, textarea:focus {
+      outline: none;
+      border-color: var(--pantone-purple);
+      background-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(114, 98, 132, 0.1);
     }
 
     textarea {
-      height: 90px;
+      height: 95px;
       resize: vertical;
     }
 
@@ -84,121 +107,128 @@
     .btn-group {
       display: flex;
       gap: 15px;
-      margin-top: 30px;
+      margin-top: 35px;
     }
 
     button {
       flex: 1;
-      padding: 15px;
+      padding: 16px 20px;
       border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
+      border-radius: 30px;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 1px;
       cursor: pointer;
       transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
 
     .btn-pdf {
-      background-color: var(--primary-color);
+      background-color: var(--pantone-purple);
       color: white;
     }
 
     .btn-cards {
-      background-color: var(--accent-gold);
+      background-color: var(--pantone-gold);
       color: white;
     }
 
     button:hover {
-      opacity: 0.9;
+      opacity: 0.92;
       transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
     }
 
-    /* PDF/列印 預覽與輸出區域樣式 */
+    /* ===== Canva 極簡風 PDF/列印樣式 ===== */
     #report-output {
       display: none;
       background: #ffffff;
       padding: 40px;
-      color: #2c2c2c;
+      color: var(--pantone-dark);
     }
 
     .report-header {
       text-align: center;
-      border-bottom: 2px solid var(--secondary-color);
-      padding-bottom: 20px;
-      margin-bottom: 30px;
+      padding-bottom: 25px;
+      margin-bottom: 35px;
+      border-bottom: 1px solid var(--pantone-sand);
     }
 
     .report-title {
       font-size: 24px;
-      color: var(--primary-color);
-      margin: 0 0 15px 0;
-      letter-spacing: 2px;
+      font-weight: 700;
+      color: var(--pantone-purple);
+      margin: 0 0 18px 0;
+      letter-spacing: 3px;
     }
 
     .meta-info {
       display: flex;
       justify-content: space-between;
-      font-size: 14px;
-      color: #666;
+      font-size: 13px;
+      color: var(--pantone-soft-gray);
+      background: var(--pantone-light-purple);
+      padding: 12px 20px;
+      border-radius: 8px;
     }
 
     .section-box {
-      margin-bottom: 25px;
-      padding: 20px;
-      background-color: #fcfbfa;
-      border-left: 4px solid var(--primary-color);
-      border-radius: 0 8px 8px 0;
-      page-break-inside: avoid; /* 防止列印時被強行截斷 */
+      margin-bottom: 30px;
+      padding: 22px 25px;
+      background-color: #faf9f7;
+      border-radius: 12px;
+      border-left: 3px solid var(--pantone-gold);
+      page-break-inside: avoid;
     }
 
     .section-title {
-      font-size: 17px;
-      color: var(--primary-color);
+      font-size: 16px;
+      color: var(--pantone-purple);
       margin-top: 0;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
       font-weight: 700;
+      letter-spacing: 1px;
     }
 
     .section-content {
       white-space: pre-line;
-      line-height: 1.8;
+      line-height: 1.85;
       font-size: 14px;
+      color: #3b383d;
     }
 
     .spread-image-container {
       text-align: center;
-      margin: 20px 0;
+      margin: 25px 0 10px 0;
     }
 
     .spread-image-container img {
       max-width: 100%;
-      max-height: 450px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      max-height: 420px;
+      border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+      border: 1px solid var(--pantone-sand);
     }
 
     #card-canvas {
       display: none;
     }
 
-    /* ===== 原生 Print/PDF 列印專用 CSS 控制 ===== */
+    /* 列印專用 CSS */
     @media print {
       body {
         background-color: #ffffff;
         padding: 0;
       }
-
       .container {
-        display: none !important; /* 列印時隱藏輸入表單 */
+        display: none !important;
       }
-
       #report-output {
-        display: block !important; /* 僅顯示報告輸出區 */
+        display: block !important;
         padding: 0;
       }
-
       @page {
-        margin: 15mm;
+        margin: 12mm;
         size: A4 portrait;
       }
     }
@@ -207,9 +237,8 @@
 <body>
 
 <div class="container">
-  <h1>靈性諮詢與塔羅解讀報告生成器</h1>
+  <h1 class="app-title">個案解讀和療癒建議 by 凱特</h1>
 
-  <!-- 輸入表單 -->
   <form id="report-form">
     <div class="row">
       <div class="form-group">
@@ -242,7 +271,7 @@
     </div>
 
     <div class="form-group">
-      <label>三、塔羅資料（請依序填寫）</label>
+      <label>三、塔羅資料</label>
       <textarea id="tarot1" placeholder="1）整體能量場（切牌）"></textarea>
       <textarea id="tarot2" placeholder="2）主牌 1 解析" style="margin-top: 8px;"></textarea>
       <textarea id="tarot3" placeholder="3）主牌 2 解析" style="margin-top: 8px;"></textarea>
@@ -252,13 +281,13 @@
     </div>
 
     <div class="form-group">
-      <label>上傳牌陣照片（僅呈現照片，不顯示牌名細節）</label>
-      <input type="file" id="spreadImage" accept="image/*">
+      <label>四、神諭卡資料－宇宙源頭、你的高我、靈性幕後團隊建議（1~3張）</label>
+      <textarea id="sec4" placeholder="輸入神諭卡指引與建議..."></textarea>
     </div>
 
     <div class="form-group">
-      <label>四、神諭卡資料－宇宙源頭、你的高我、靈性幕後團隊建議（1~3張）</label>
-      <textarea id="sec4" placeholder="輸入神諭卡指引與建議..."></textarea>
+      <label>上傳牌陣照片（將呈現在四、神諭卡資料後面）</label>
+      <input type="file" id="spreadImage" accept="image/*">
     </div>
 
     <div class="form-group">
@@ -267,21 +296,21 @@
     </div>
 
     <div class="form-group">
-      <label>六、推薦下載的資料（每行一條，將自動產出精美圖卡）</label>
+      <label>六、推薦下載的資料（每行一條，將產出 20 張單張小卡 + 1 張總覽大卡）</label>
       <textarea id="sec6" placeholder="1. 我知道如何全然地做自己&#10;2. 我能夠表達自己的心聲..." style="height: 150px;"></textarea>
     </div>
 
     <div class="btn-group">
-      <button type="button" class="btn-pdf" onclick="generatePDF()">📄 列印 / 另存為 PDF 報告</button>
-      <button type="button" class="btn-cards" onclick="generateAffirmationCards()">🖼️ 下載 20條下載語句小卡 (Zip)</button>
+      <button type="button" class="btn-pdf" onclick="generatePDF()">📄 下載 / 列印 PDF 報告</button>
+      <button type="button" class="btn-cards" onclick="generateAffirmationCards()">🖼️ 下載資料下載圖卡 (Zip)</button>
     </div>
   </form>
 </div>
 
-<!-- PDF 樣式預覽/輸出模板 -->
+<!-- PDF 列印與輸出區域 -->
 <div id="report-output">
   <div class="report-header">
-    <h1 class="report-title">靈性諮詢與塔羅驗證解讀報告</h1>
+    <h1 class="report-title">個案解讀和療癒建議 by 凱特</h1>
     <div class="meta-info">
       <span id="out-client">個案：</span>
       <span id="out-topic">主題：</span>
@@ -301,7 +330,7 @@
   </div>
 
   <div class="section-box">
-    <h2 class="section-title">三、塔羅能量驗證</h2>
+    <h2 class="section-title">三、塔羅資料</h2>
     <div class="section-content">
       <strong>【整體能量場】</strong><br><span id="out-t1"></span><br><br>
       <strong>【核心議題一】</strong><br><span id="out-t2"></span><br><br>
@@ -310,12 +339,12 @@
       <strong>【靈魂課題】</strong><br><span id="out-t5"></span><br><br>
       <strong>【整合總結】</strong><br><span id="out-t6"></span>
     </div>
-    <div class="spread-image-container" id="out-img-container"></div>
   </div>
 
   <div class="section-box">
-    <h2 class="section-title">四、神諭卡指引－高我與靈性幕後團隊建議</h2>
+    <h2 class="section-title">四、神諭卡資料－宇宙源頭、你的高我、靈性幕後團隊建議</h2>
     <div class="section-content" id="out-sec4"></div>
+    <div class="spread-image-container" id="out-img-container"></div>
   </div>
 
   <div class="section-box">
@@ -324,21 +353,40 @@
   </div>
 
   <div class="section-box">
-    <h2 class="section-title">六、推薦下載的正向能量資料</h2>
+    <h2 class="section-title">六、推薦下載的資料</h2>
     <div class="section-content" id="out-sec6"></div>
   </div>
 </div>
 
-<canvas id="card-canvas" width="1080" height="1080"></canvas>
+<canvas id="card-canvas"></canvas>
 
 <script>
-  // 設定預設日期為今天
+  // 預設日期設定
   document.getElementById('readDate').valueAsDate = new Date();
 
-  // 生成 PDF 報告 (呼叫原生 Print 對話框，可直接「另存為 PDF」)
+  // 儲存圖片 DataURL 避免破圖
+  let uploadedImgDataUrl = "";
+  document.getElementById('spreadImage').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        uploadedImgDataUrl = evt.target.result;
+      }
+      reader.readAsDataURL(file);
+    } else {
+      uploadedImgDataUrl = "";
+    }
+  });
+
+  // 1. 生成與列印 PDF 功能
   function generatePDF() {
-    // 1. 將輸入框內容帶入報告樣式中
-    document.getElementById('out-client').innerText = '個案：' + (document.getElementById('clientName').value || '貴賓');
+    const clientName = document.getElementById('clientName').value.trim() || '個案';
+    
+    // 動態更改網頁 Title，實現 PDF 檔名變更為：[個案名稱]的解讀和療癒建議
+    document.title = `${clientName}的解讀和療癒建議`;
+
+    document.getElementById('out-client').innerText = '個案：' + clientName;
     document.getElementById('out-reader').innerText = '解讀者：' + (document.getElementById('readerName').value || '凱特');
     document.getElementById('out-date').innerText = '日期：' + document.getElementById('readDate').value;
     document.getElementById('out-topic').innerText = '主題：' + document.getElementById('readTopic').value;
@@ -357,26 +405,21 @@
     document.getElementById('out-sec5').innerText = document.getElementById('sec5').value;
     document.getElementById('out-sec6').innerText = document.getElementById('sec6').value;
 
-    // 2. 處理圖片
-    const imgInput = document.getElementById('spreadImage');
+    // 將圖片渲染至第四大項後面
     const imgContainer = document.getElementById('out-img-container');
     imgContainer.innerHTML = '';
-
-    if (imgInput.files && imgInput.files[0]) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const img = document.createElement('img');
-        img.src = e.target.result;
-        imgContainer.appendChild(img);
-        setTimeout(() => { window.print(); }, 300); // 確保圖片載入後喚起列印
-      }
-      reader.readAsDataURL(imgInput.files[0]);
-    } else {
-      window.print();
+    if (uploadedImgDataUrl) {
+      const img = document.createElement('img');
+      img.src = uploadedImgDataUrl;
+      imgContainer.appendChild(img);
     }
+
+    setTimeout(() => {
+      window.print();
+    }, 200);
   }
 
-  // 2. 自動繪製精美小卡並打包 Zip
+  // 2. Canva 極簡風小卡（包含 20 張單項正方形 + 1 張全集長方形大卡）
   async function generateAffirmationCards() {
     const textRaw = document.getElementById('sec6').value.trim();
     if (!textRaw) {
@@ -396,47 +439,43 @@
     const zip = new JSZip();
     const canvas = document.getElementById('card-canvas');
     const ctx = canvas.getContext('2d');
-    const clientName = document.getElementById('clientName').value || '個案';
+    const clientName = document.getElementById('clientName').value.trim() || '個案';
+
+    // A. 繪製 1~20 張正方形極簡小卡 (1080x1080)
+    canvas.width = 1080;
+    canvas.height = 1080;
 
     for (let i = 0; i < lines.length; i++) {
       const text = lines[i];
 
-      // 背景漸層
+      // Canva Pantone 晨霧質感漸層背景
       const gradient = ctx.createLinearGradient(0, 0, 1080, 1080);
-      gradient.addColorStop(0, '#fbf8f5');
-      gradient.addColorStop(0.5, '#f4ece1');
-      gradient.addColorStop(1, '#e8d8ce');
+      gradient.addColorStop(0, '#f9f7f5');
+      gradient.addColorStop(0.6, '#f1ebf2');
+      gradient.addColorStop(1, '#e8ded2');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, 1080, 1080);
 
-      // 邊框
-      ctx.strokeStyle = '#d4af37';
-      ctx.lineWidth = 4;
+      // 極簡雙框線 (Pantone 暖沙金)
+      ctx.strokeStyle = '#c5a059';
+      ctx.lineWidth = 3;
       ctx.strokeRect(60, 60, 960, 960);
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1;
       ctx.strokeRect(72, 72, 936, 936);
 
-      // 四角點綴
-      const dots = [[80,80], [1000,80], [80,1000], [1000,1000]];
-      ctx.fillStyle = '#d4af37';
-      dots.forEach(pt => {
-        ctx.beginPath();
-        ctx.arc(pt[0], pt[1], 6, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      // 標題
-      ctx.font = '32px "Noto Serif TC", serif';
-      ctx.fillStyle = '#7b5294';
+      // 頂部標題：資料下載
+      ctx.font = '500 34px "Noto Sans TC", sans-serif';
+      ctx.fillStyle = '#726284';
       ctx.textAlign = 'center';
-      ctx.fillText('✨ 靈魂下載正向頻率 ✨', 540, 220);
+      ctx.letterSpacing = '6px';
+      ctx.fillText('資 料 下 載', 540, 220);
 
-      // 內容斷行
-      ctx.font = '600 46px "Noto Serif TC", serif';
-      ctx.fillStyle = '#333333';
+      // 中央主要文字（極簡現代黑體）
+      ctx.font = '500 46px "Noto Sans TC", sans-serif';
+      ctx.fillStyle = '#2b292c';
       
-      const maxWidth = 780;
-      const lineHeight = 75;
+      const maxWidth = 760;
+      const lineHeight = 72;
       const words = text.split('');
       let currentLine = '';
       let textLines = [];
@@ -458,19 +497,71 @@
         ctx.fillText(textLines[j], 540, startY + (j * lineHeight));
       }
 
-      // 落款
-      ctx.font = '28px "Noto Serif TC", serif';
-      ctx.fillStyle = '#888888';
-      ctx.fillText(`Kate Spiritual Guidance • 獻給 ${clientName}`, 540, 900);
+      // 底部署名：謝謝你、我愛你
+      ctx.font = '400 28px "Noto Sans TC", sans-serif';
+      ctx.fillStyle = '#78757a';
+      ctx.fillText('謝謝你、我愛你', 540, 900);
 
       const dataUrl = canvas.toDataURL('image/png');
-      const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
-      zip.file(`下載卡片_${i + 1}.png`, base64Data, {base64: true});
+      zip.file(`資料下載卡片_${i + 1}.png`, dataUrl.replace(/^data:image\/png;base64,/, ""), {base64: true});
     }
 
-    alert('正向下載小卡生成中，請稍候...');
+    // B. 額外繪製第 21 張：包含全部 20 條資料的長方形大卡 (1080x1920 手機桌布尺寸)
+    canvas.width = 1080;
+    canvas.height = 1920;
+
+    // 長方形極簡漸層背景
+    const bgGrad = ctx.createLinearGradient(0, 0, 1080, 1920);
+    bgGrad.addColorStop(0, '#fbf9f7');
+    bgGrad.addColorStop(0.5, '#f2edf4');
+    bgGrad.addColorStop(1, '#e5dad0');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, 1080, 1920);
+
+    // 金色優雅外框
+    ctx.strokeStyle = '#c5a059';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(50, 50, 980, 1820);
+
+    // 大卡頂部標題
+    ctx.font = '700 42px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#726284';
+    ctx.textAlign = 'center';
+    ctx.fillText('資 料 下 載 總 覽', 540, 140);
+
+    ctx.font = '300 24px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#78757a';
+    ctx.fillText(`獻給 ${clientName} 的能量頻率對齊`, 540, 190);
+
+    // 繪製 20 條語句清單
+    ctx.font = '400 28px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#2b292c';
+    ctx.textAlign = 'left';
+
+    let listStartY = 260;
+    const itemLineHeight = 75;
+
+    lines.forEach((line, idx) => {
+      let displayLine = `${idx + 1}. ${line}`;
+      if (displayLine.length > 28) {
+        displayLine = displayLine.substring(0, 27) + '...';
+      }
+      ctx.fillText(displayLine, 100, listStartY + (idx * itemLineHeight));
+    });
+
+    // 大卡底部署名
+    ctx.font = '400 30px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#726284';
+    ctx.textAlign = 'center';
+    ctx.fillText('謝謝你、我愛你', 540, 1800);
+
+    const fullCardData = canvas.toDataURL('image/png');
+    zip.file(`資料下載_20條全集總覽卡.png`, fullCardData.replace(/^data:image\/png;base64,/, ""), {base64: true});
+
+    // 開始打包下載 Zip
+    alert('正在為您打包生成 Pantone 質感圖卡包，請稍候...');
     zip.generateAsync({type:"blob"}).then(function(content) {
-      saveAs(content, `下載語句正向卡片_${clientName}.zip`);
+      saveAs(content, `${clientName}_資料下載圖卡套組.zip`);
     });
   }
 </script>
