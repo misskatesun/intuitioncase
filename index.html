@@ -126,8 +126,14 @@
 
     .btn-group {
       display: flex;
-      gap: 20px;
+      flex-direction: column;
+      gap: 15px;
       margin-top: 40px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 20px;
     }
 
     button {
@@ -151,6 +157,12 @@
     .btn-cards {
       background-color: var(--pantone-gold);
       color: white;
+    }
+
+    .btn-audio {
+      background: linear-gradient(135deg, #614d75 0%, #8e72a8 100%);
+      color: white;
+      font-size: 19px;
     }
 
     button:hover {
@@ -330,8 +342,11 @@
     </div>
 
     <div class="btn-group">
-      <button type="button" class="btn-pdf" onclick="generatePDF()">📄 下載 / 列印 PDF 報告</button>
-      <button type="button" class="btn-cards" onclick="generateAffirmationCards()">🖼️ 下載資料下載圖卡 (Zip)</button>
+      <div class="btn-row">
+        <button type="button" class="btn-pdf" onclick="generatePDF()">📄 下載 / 列印 PDF 報告</button>
+        <button type="button" class="btn-cards" onclick="generateAffirmationCards()">🖼️ 下載資料下載圖卡 (Zip)</button>
+      </div>
+      <button type="button" class="btn-audio" onclick="generateAudioExplanationCard()">🌌 下載「專屬顯化音頻說明卡」 (PNG)</button>
     </div>
   </form>
 </div>
@@ -407,8 +422,6 @@
         cvs.width = img.width;
         cvs.height = img.height;
         const ctx = cvs.getContext('2d');
-        
-        // 採用 Canvas 原生高品質濾鏡增亮，保持 100% 原始超高解析度
         ctx.filter = "brightness(1.35) contrast(1.08)";
         ctx.drawImage(img, 0, 0);
         resolve(cvs.toDataURL('image/jpeg', 0.95));
@@ -450,7 +463,6 @@
         };
         reader.readAsDataURL(targetBlob);
       } else {
-        // 一般 PNG/JPG 使用原生 FileReader + 高畫質 Canvas 增亮
         const reader = new FileReader();
         reader.onload = async function(evt) {
           uploadedImgDataUrl = await processHighResImage(evt.target.result);
@@ -490,7 +502,6 @@
     document.getElementById('out-sec5').innerText = document.getElementById('sec5').value;
     document.getElementById('out-sec6').innerText = document.getElementById('sec6').value;
 
-    // 將圖片填入第一頁標題正下方
     const imgContainer = document.getElementById('out-img-container');
     imgContainer.innerHTML = '';
     if (uploadedImgDataUrl) {
@@ -526,7 +537,6 @@
     const ctx = canvas.getContext('2d');
     const clientName = document.getElementById('clientName').value.trim() || '個案';
 
-    // A. 正方形單張卡 (1080x1080)
     canvas.width = 1080;
     canvas.height = 1080;
 
@@ -549,7 +559,6 @@
       ctx.font = '500 36px "Noto Sans TC", sans-serif';
       ctx.fillStyle = '#614d75';
       ctx.textAlign = 'center';
-      ctx.letterSpacing = '6px';
       ctx.fillText('資 料 下 載', 540, 220);
 
       ctx.font = '500 48px "Noto Sans TC", sans-serif';
@@ -586,7 +595,6 @@
       zip.file(`資料下載卡片_${i + 1}.png`, dataUrl.replace(/^data:image\/png;base64,/, ""), {base64: true});
     }
 
-    // B. 長方形總覽卡 (1080x1920)
     canvas.width = 1080;
     canvas.height = 1920;
 
@@ -633,6 +641,166 @@
     zip.generateAsync({type:"blob"}).then(function(content) {
       saveAs(content, `${clientName}_資料下載圖卡套組.zip`);
     });
+  }
+
+  // 3. 專屬顯化音頻說明卡生成器
+  function generateAudioExplanationCard() {
+    const clientName = document.getElementById('clientName').value.trim() || '個案';
+    const textRaw = document.getElementById('sec6').value.trim();
+
+    if (!textRaw) {
+      alert('請先在第六區塊「推薦下載的資料」輸入內容！音頻說明卡需要列出這些語句。');
+      return;
+    }
+
+    const lines = textRaw.split('\n')
+      .map(line => line.replace(/^[0-9\.\s、]+/g, '').trim())
+      .filter(line => line.length > 0);
+
+    const canvas = document.getElementById('card-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // 採用高畫質質感長圖尺寸 1080 x 2200
+    canvas.width = 1080;
+    canvas.height = 2200;
+
+    // 1. 背景漸層
+    const bgGrad = ctx.createLinearGradient(0, 0, 1080, 2200);
+    bgGrad.addColorStop(0, '#f8f5f8');
+    bgGrad.addColorStop(0.3, '#f2ebf5');
+    bgGrad.addColorStop(0.7, '#ebdcd0');
+    bgGrad.addColorStop(1, '#e2d2c3');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, 1080, 2200);
+
+    // 2. 邊框設計
+    ctx.strokeStyle = '#b38b43';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(40, 40, 1000, 2120);
+    ctx.lineWidth = 1;
+    ctx.strokeRect(52, 52, 976, 2096);
+
+    // 3. 頁首標題
+    ctx.textAlign = 'center';
+    ctx.font = '700 42px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#614d75';
+    ctx.fillText('專 屬 定 制 ： 量 子 頻 率 顯 化 音 頻', 540, 130);
+
+    ctx.font = '500 28px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#222023';
+    ctx.fillText(`Dear ${clientName}，這是為你量身打造的 15 分鐘專屬顯化音頻`, 540, 190);
+
+    // 4. 第一區塊：錄製語句清單卡片
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.beginPath();
+    ctx.roundRect(80, 240, 920, 480, 16);
+    ctx.fill();
+    ctx.strokeStyle = '#e0d4c5';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.textAlign = 'left';
+    ctx.font = '700 30px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#614d75';
+    ctx.fillText('✨ 音頻內含專屬肯定句語音（17,500Hz 超音波刻錄）：', 110, 295);
+
+    ctx.font = '400 25px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#2b292c';
+    let lineY = 350;
+    const maxShowLines = Math.min(lines.length, 6);
+    for (let i = 0; i < maxShowLines; i++) {
+      let displayStr = `${i + 1}. ${lines[i]}`;
+      if (displayStr.length > 32) displayStr = displayStr.substring(0, 31) + '...';
+      ctx.fillText(displayStr, 120, lineY);
+      lineY += 52;
+    }
+    if (lines.length > 6) {
+      ctx.fillStyle = '#636066';
+      ctx.fillText(`... 以及其餘共 ${lines.length} 條專屬下載資料`, 120, lineY);
+    }
+
+    // 5. 第二區塊：科學與能量解密
+    ctx.textAlign = 'left';
+    ctx.font = '700 32px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#614d75';
+    ctx.fillText('🧬 音頻科學與能量解密', 80, 780);
+
+    // 432Hz
+    ctx.font = '700 27px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#b38b43';
+    ctx.fillText('🌌 1. 432Hz 宇宙療癒心弦', 80, 835);
+
+    ctx.font = '400 24px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#222023';
+    ctx.fillText('背景融入「宇宙數學密碼」432Hz 自然正弦波，能釋放深層壓力、', 80, 875);
+    ctx.fillText('引導腦波進入 θ (Theta) 希塔波狀態，開啟潛意識深層大門。', 80, 915);
+
+    // 17500Hz
+    ctx.font = '700 27px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#b38b43';
+    ctx.fillText('🗣️ 2. 17,500Hz 超音波潛意識調變（Silent Subliminal）', 80, 980);
+
+    ctx.font = '400 24px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#222023';
+    ctx.fillText('採用 Lowery 專利技術，將為你錄製的肯定句推移至 17,500Hz 極高頻，', 80, 1020);
+    ctx.fillText('直接繞過大腦的「理性批判牆」，讓正向信念無阻礙寫入潛意識。', 80, 1060);
+
+    // 6. 第三區塊：聆聽指南卡片
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.beginPath();
+    ctx.roundRect(80, 1120, 920, 780, 16);
+    ctx.fill();
+    ctx.strokeStyle = '#b38b43';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.font = '700 32px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#614d75';
+    ctx.fillText('🎧 專屬聆聽指南', 120, 1180);
+
+    // 設備建議
+    ctx.font = '700 26px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#222023';
+    ctx.fillText('📱 器材設備建議：', 120, 1235);
+    ctx.font = '400 23px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#444';
+    ctx.fillText('建議使用全罩式耳機、高音質耳機或細緻的家用音響聆聽。', 120, 1275);
+    ctx.fillText('＊小提醒：手機內建喇叭可能過濾高頻。請確保音樂軟體未開啟', 120, 1315);
+    ctx.fillText('「音效等化器 (EQ)」或「高頻壓縮/省電模式」，以保留完整訊號。', 120, 1355);
+
+    // 音量
+    ctx.font = '700 26px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#222023';
+    ctx.fillText('🔊 音量設定：', 120, 1425);
+    ctx.font = '400 23px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#444';
+    ctx.fillText('調至舒適適中即可，雖然聽不見說話聲，高頻能量仍穩定運作中。', 120, 1465);
+
+    // 時機
+    ctx.font = '700 26px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#222023';
+    ctx.fillText('🌙 最佳聆聽時機：', 120, 1535);
+    ctx.font = '400 23px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#444';
+    ctx.fillText('非常適合在每天「清晨剛醒來時」或「晚上臨睡前」閉眼聆聽，', 120, 1575);
+    ctx.fillText('這兩個時段是大腦進入 Theta 波、顯化效果最好的黃金半小時。', 120, 1615);
+
+    // 7. 結尾與簽名
+    ctx.textAlign = 'center';
+    ctx.font = '500 32px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#614d75';
+    ctx.fillText('「你所尋求的，也正尋求著你。」', 540, 1970);
+
+    ctx.font = '400 26px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#636066';
+    ctx.fillText('願這道專屬頻率，陪伴你輕鬆豐盛地顯化理想生活。', 540, 2020);
+
+    // 下載圖片
+    const dataUrl = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `${clientName}_專屬量子頻率顯化音頻說明卡.png`;
+    a.click();
   }
 </script>
 
