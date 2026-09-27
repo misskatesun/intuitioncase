@@ -210,6 +210,11 @@
       border-radius: 12px;
       box-shadow: 0 6px 20px rgba(0,0,0,0.08);
       border: 1px solid var(--pantone-sand);
+      image-rendering: -webkit-optimize-contrast; /* 強化瀏覽器文字清晰度 */
+    }
+
+    .top-image-section img.heic-adjusted {
+      filter: brightness(0.92) contrast(1.05); /* HEIC 專用微調防過曝 */
     }
 
     .section-box {
@@ -237,7 +242,7 @@
       color: #2b292c;
     }
 
-    #card-canvas, #sharpen-canvas {
+    #card-canvas {
       display: none;
     }
 
@@ -390,69 +395,16 @@
 </div>
 
 <canvas id="card-canvas"></canvas>
-<canvas id="sharpen-canvas"></canvas>
 
 <script>
   document.getElementById('readDate').valueAsDate = new Date();
 
   let uploadedImgDataUrl = "";
+  let currentFileIsHeic = false;
   const uploadStatus = document.getElementById('uploadStatus');
   const formImgPreview = document.getElementById('formImgPreview');
 
-  // Canvas 3x3 卷積銳化矩陣 + 自適應高光防過曝亮度曲線
-  function processImageData(imgObj, brightnessFactor) {
-    const canvas = document.getElementById('sharpen-canvas');
-    const ctx = canvas.getContext('2d');
-    
-    canvas.width = imgObj.width;
-    canvas.height = imgObj.height;
-    
-    ctx.drawImage(imgObj, 0, 0);
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imgData.data;
-    const width = canvas.width;
-    const height = canvas.height;
-    
-    // 銳化卷積陣列
-    const kernel = [
-      0, -0.6, 0,
-      -0.6, 3.4, -0.6,
-      0, -0.6, 0
-    ];
-    
-    const output = ctx.createImageData(width, height);
-    const outData = output.data;
-    
-    for (let y = 1; y < height - 1; y++) {
-      for (let x = 1; x < width - 1; x++) {
-        for (let c = 0; c < 3; c++) {
-          let res = 0;
-          for (let ky = -1; ky <= 1; ky++) {
-            for (let kx = -1; kx <= 1; kx++) {
-              const idx = ((y + ky) * width + (x + kx)) * 4 + c;
-              const kVal = kernel[(ky + 1) * 3 + (kx + 1)];
-              res += data[idx] * kVal;
-            }
-          }
-          const outIdx = (y * width + x) * 4 + c;
-          
-          // 計算增益亮度：高光自動平滑防過曝
-          let val = res * brightnessFactor;
-          if (val > 220) {
-            val = 220 + (val - 220) * 0.5; // 防止極亮區域死白
-          }
-          outData[outIdx] = Math.min(255, Math.max(0, val));
-        }
-        const alphaIdx = (y * width + x) * 4 + 3;
-        outData[alphaIdx] = data[alphaIdx];
-      }
-    }
-    
-    ctx.putImageData(output, 0, 0);
-    return canvas.toDataURL('image/jpeg', 0.95);
-  }
-
-  // 獨立精準亮度調節：HEIC (0.92 防過曝) vs PNG/JPG (1.22 明亮絕不暗沉)
+  // 回歸原生最穩定機制：PNG/JPG 直接讀取不經 Canvas 計算；HEIC 專用轉碼
   document.getElementById('spreadImage').addEventListener('change', async function(e) {
     const file = e.target.files[0];
     if (!file) {
@@ -463,14 +415,12 @@
     }
 
     const fileName = file.name.toLowerCase();
-    const isHeic = fileName.endsWith('.heic') || fileName.endsWith('.heif') || file.type.includes('heic') || file.type.includes('heif');
+    currentFileIsHeic = fileName.endsWith('.heic') || fileName.endsWith('.heif') || file.type.includes('heic') || file.type.includes('heif');
 
-    uploadStatus.innerText = "⌛ 正在進行圖像增亮、像素銳化與邊緣清晰化處理...";
+    uploadStatus.innerText = "⌛ 正在載入照片...";
 
     try {
-      let targetBlob = file;
-
-      if (isHeic) {
+      if (currentFileIsHeic) {
         if (typeof heic2any === 'undefined') {
           throw new Error('轉碼引擎載入中，請重新選擇圖片。');
         }
@@ -479,25 +429,24 @@
           toType: "image/jpeg",
           quality: 0.95
         });
-        targetBlob = Array.isArray(converted) ? converted[0] : converted;
-      }
-
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const rawImg = new Image();
-        rawImg.onload = function() {
-          // PNG / JPG 大幅感光提升至 1.22；HEIC 保持 0.92 通透不爆光
-          const brightnessFactor = isHeic ? 0.92 : 1.22;
-          
-          // 執行增亮與字跡銳化
-          uploadedImgDataUrl = processImageData(rawImg, brightnessFactor);
-          
-          uploadStatus.innerText = "✓ 照片處理完成！PNG 亮度已大幅提升，字跡邊緣清晰。";
+        const targetBlob = Array.isArray(converted) ? converted[0] : converted;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          uploadedImgDataUrl = evt.target.result;
+          uploadStatus.innerText = "✓ HEIC 照片載入完成！";
+          formImgPreview.innerHTML = `<img src="${uploadedImgDataUrl}" class="heic-adjusted" alt="預覽圖">`;
+        };
+        reader.readAsDataURL(targetBlob);
+      } else {
+        // PNG / JPG 直接原樣讀取，確保原始色彩與亮度 100% 精確
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          uploadedImgDataUrl = evt.target.result;
+          uploadStatus.innerText = "✓ 照片載入完成！原始亮度與色彩已完整保留。";
           formImgPreview.innerHTML = `<img src="${uploadedImgDataUrl}" alt="預覽圖">`;
         };
-        rawImg.src = evt.target.result;
-      };
-      reader.readAsDataURL(targetBlob);
+        reader.readAsDataURL(file);
+      }
 
     } catch (err) {
       console.error(err);
@@ -529,12 +478,15 @@
     document.getElementById('out-sec5').innerText = document.getElementById('sec5').value;
     document.getElementById('out-sec6').innerText = document.getElementById('sec6').value;
 
-    // 將銳化與增亮後的圖片填入第一頁標題正下方
+    // 將照片填入第一頁標題正下方
     const imgContainer = document.getElementById('out-img-container');
     imgContainer.innerHTML = '';
     if (uploadedImgDataUrl) {
       const img = document.createElement('img');
       img.src = uploadedImgDataUrl;
+      if (currentFileIsHeic) {
+        img.classList.add('heic-adjusted');
+      }
       imgContainer.appendChild(img);
     }
 
