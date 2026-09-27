@@ -105,29 +105,6 @@
       flex: 1;
     }
 
-    /* 雙上傳區區塊 */
-    .upload-container {
-      background-color: #faf8f5;
-      border: 1px dashed var(--pantone-sand);
-      border-radius: 12px;
-      padding: 20px;
-      margin-top: 10px;
-    }
-
-    .upload-subgroup {
-      margin-bottom: 15px;
-    }
-
-    .upload-subgroup:last-child {
-      margin-bottom: 0;
-    }
-
-    .upload-subgroup label {
-      font-size: 15px;
-      color: var(--pantone-dark);
-      margin-bottom: 6px;
-    }
-
     .upload-status {
       font-size: 15px;
       color: var(--pantone-purple);
@@ -145,6 +122,13 @@
       max-height: 260px;
       border-radius: 8px;
       border: 1px solid var(--pantone-sand);
+    }
+
+    /* PNG / JPG 專用增亮效果 */
+    .preview-box img.png-brighten,
+    .top-image-section img.png-brighten {
+      filter: brightness(1.75) contrast(1.12) saturate(1.08);
+      -webkit-filter: brightness(1.75) contrast(1.12) saturate(1.08);
     }
 
     .btn-group {
@@ -193,7 +177,7 @@
     .report-header {
       text-align: center;
       padding-bottom: 15px;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
       border-bottom: 2px solid var(--pantone-sand);
       page-break-after: avoid;
       break-after: avoid;
@@ -218,9 +202,9 @@
       font-weight: 500;
     }
 
-    /* 第一頁標題正下方的照片區塊 */
+    /* 第一頁標題正下方的照片區塊，防斷頁處理 */
     .top-image-section {
-      margin: 18px 0 25px 0;
+      margin: 20px 0 28px 0;
       text-align: center;
       page-break-inside: avoid;
       page-break-after: avoid;
@@ -236,8 +220,8 @@
     }
 
     .section-box {
-      margin-bottom: 28px;
-      padding: 24px 28px;
+      margin-bottom: 30px;
+      padding: 26px 28px;
       background-color: #faf9f7;
       border-radius: 14px;
       border-left: 5px solid var(--pantone-gold);
@@ -310,26 +294,9 @@
       <input type="text" id="readTopic" placeholder="例如：近期事業發展與能量狀態對齊">
     </div>
 
-    <!-- 分立上傳區塊 -->
     <div class="form-group">
-      <label>上傳牌陣照片（請依檔案格式選擇對應入口）</label>
-      <div class="upload-container">
-        
-        <!-- 入口 A：PNG / JPG / WEBP -->
-        <div class="upload-subgroup">
-          <label>📷 一般照片入口（PNG, JPG, JPEG, WEBP）</label>
-          <input type="file" id="standardImage" accept="image/png, image/jpeg, image/jpg, image/webp">
-        </div>
-
-        <hr style="border: 0; border-top: 1px dashed #e0d4c5; margin: 15px 0;">
-
-        <!-- 入口 B：HEIC 專用 -->
-        <div class="upload-subgroup">
-          <label>📱 iPhone 原生格式入口（HEIC / HEIF 專用）</label>
-          <input type="file" id="heicImage" accept=".heic, .HEIC, .heif, .HEIF">
-        </div>
-
-      </div>
+      <label>上傳牌陣照片（支援 JPG, PNG, HEIC 格式）</label>
+      <input type="file" id="spreadImage" accept="image/*, .heic, .HEIC, .heif, .HEIF">
       <div id="uploadStatus" class="upload-status"></div>
       <div id="formImgPreview" class="preview-box"></div>
     </div>
@@ -388,7 +355,7 @@
     </div>
   </div>
 
-  <!-- 第一頁標題正下方的照片區塊 -->
+  <!-- 強制鎖定在第一頁標題正下方的照片區塊 -->
   <div class="top-image-section" id="out-img-container"></div>
 
   <div class="section-box">
@@ -434,53 +401,55 @@
 <script>
   document.getElementById('readDate').valueAsDate = new Date();
 
-  let activeImageSrc = "";
+  let uploadedImgDataUrl = "";
+  let isPngOrJpg = false;
   const uploadStatus = document.getElementById('uploadStatus');
   const formImgPreview = document.getElementById('formImgPreview');
-  const standardInput = document.getElementById('standardImage');
-  const heicInput = document.getElementById('heicImage');
 
-  // 入口 A：PNG / JPG 原生檔案處理（使用 ObjectURL，零色彩損失與零壓暗）
-  standardInput.addEventListener('change', function(e) {
+  document.getElementById('spreadImage').addEventListener('change', async function(e) {
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file) {
+      uploadedImgDataUrl = "";
+      uploadStatus.innerText = "";
+      formImgPreview.innerHTML = "";
+      return;
+    }
 
-    // 清空 HEIC 入口
-    heicInput.value = "";
+    const fileName = file.name.toLowerCase();
+    const isHeic = fileName.endsWith('.heic') || fileName.endsWith('.heif') || file.type.includes('heic') || file.type.includes('heif');
+    isPngOrJpg = !isHeic;
 
-    // 直接建立瀏覽器記憶體原生 URL，100% 保持原始色彩與亮度
-    activeImageSrc = URL.createObjectURL(file);
-    uploadStatus.innerText = "✓ 一般照片載入成功！已採用 100% 原生色彩渲染。";
-    formImgPreview.innerHTML = `<img src="${activeImageSrc}" alt="預覽圖">`;
-  });
-
-  // 入口 B：HEIC 專用處理
-  heicInput.addEventListener('change', async function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // 清空一般入口
-    standardInput.value = "";
-    uploadStatus.innerText = "⌛ 正在解析 HEIC 照片...";
+    uploadStatus.innerText = isHeic ? "⌛ 正在解析 HEIC 照片..." : "⌛ 正在加載照片...";
 
     try {
-      if (typeof heic2any === 'undefined') {
-        throw new Error('轉碼模組載入中，請稍後重試。');
+      let targetBlob = file;
+
+      // HEIC 使用最新極速轉檔機制
+      if (isHeic) {
+        if (typeof heic2any === 'undefined') {
+          throw new Error('HEIC 轉碼引擎載入中，請重新選擇圖片。');
+        }
+        const converted = await heic2any({
+          blob: file,
+          toType: "image/jpeg",
+          quality: 0.95
+        });
+        targetBlob = Array.isArray(converted) ? converted[0] : converted;
       }
-      const converted = await heic2any({
-        blob: file,
-        toType: "image/jpeg",
-        quality: 0.95
-      });
-      const targetBlob = Array.isArray(converted) ? converted[0] : converted;
-      
-      activeImageSrc = URL.createObjectURL(targetBlob);
-      uploadStatus.innerText = "✓ HEIC 照片解析完成！";
-      formImgPreview.innerHTML = `<img src="${activeImageSrc}" alt="預覽圖">`;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        uploadedImgDataUrl = evt.target.result;
+        uploadStatus.innerText = isPngOrJpg ? "✓ 照片已成功載入並完成 75% 強效調亮！" : "✓ HEIC 照片解析完成！";
+        
+        const imgClass = isPngOrJpg ? 'class="png-brighten"' : '';
+        formImgPreview.innerHTML = `<img src="${uploadedImgDataUrl}" ${imgClass} alt="預覽圖">`;
+      };
+      reader.readAsDataURL(targetBlob);
 
     } catch (err) {
       console.error(err);
-      uploadStatus.innerText = "❌ HEIC 解析失敗，請確認檔案是否損壞。";
+      uploadStatus.innerText = "❌ 照片解析失敗，請重新選擇照片。";
     }
   });
 
@@ -508,12 +477,15 @@
     document.getElementById('out-sec5').innerText = document.getElementById('sec5').value;
     document.getElementById('out-sec6').innerText = document.getElementById('sec6').value;
 
-    // 將照片填入第一頁標題正下方
+    // 將圖片填入第一頁標題正下方
     const imgContainer = document.getElementById('out-img-container');
     imgContainer.innerHTML = '';
-    if (activeImageSrc) {
+    if (uploadedImgDataUrl) {
       const img = document.createElement('img');
-      img.src = activeImageSrc;
+      img.src = uploadedImgDataUrl;
+      if (isPngOrJpg) {
+        img.classList.add('png-brighten');
+      }
       imgContainer.appendChild(img);
     }
 
