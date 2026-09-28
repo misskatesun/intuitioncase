@@ -220,7 +220,7 @@
             </div>
             <div class="form-group">
                 <label>解讀者</label>
-                <input type="text" id="readerName" value="凱特">
+                <input type="text" id="readerName" value="凱特" oninput="updatePageTitle()">
             </div>
             <div class="form-group">
                 <label>解讀日期</label>
@@ -315,7 +315,8 @@ let uploadedSpecDataUrl = "";
 
 const updatePageTitle = () => {
     const name = document.getElementById('clientName').value.trim() || "個案";
-    document.title = `${name}的解讀和療癒建議 _ 凱特`;
+    const reader = document.getElementById('readerName').value.trim() || "凱特";
+    document.title = `${name}的解讀和療癒建議 _ by${reader}`;
 };
 
 function processHighResImage(rawImg) {
@@ -465,7 +466,7 @@ const generateReport = () => {
         html += `<div class="report-section"><div class="section-header-block"><div class="section-title-bar">六、推薦下載的資料</div><div class="item-card">${sec6}</div></div></div>`;
     }
 
-    // 第七項：療癒清理與下載資料（固定說明，已更新指定的格式與標點）
+    // 第七項：療癒清理與下載資料
     html += `
         <div class="report-section">
             <div class="section-header-block">
@@ -682,7 +683,7 @@ async function generateAffirmationCards() {
 
     alert('正在為您打包生成質感圖卡包，請稍候...');
     zip.generateAsync({type:"blob"}).then(function(content) {
-        saveAs(content, `${clientName}_資料下載圖卡套組.zip`);
+        saveAs(content, `${clientName}的資料下載隨身圖卡.zip`);
     });
 }
 
@@ -943,7 +944,7 @@ async function generateAudioExplanationCard() {
     const dataUrl = canvas.toDataURL('image/png');
     const a = document.createElement('a');
     a.href = dataUrl;
-    a.download = `${clientName}_專屬量子頻率顯化音頻說明卡.png`;
+    a.download = `${clientName}的專屬量子頻率顯化音頻說明卡.png`;
     a.click();
 }
 </script>
