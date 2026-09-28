@@ -321,7 +321,7 @@
       <textarea id="tarot1" placeholder="1）整體能量場（切牌）"></textarea>
       <textarea id="tarot2" placeholder="2）主牌 1 解析" style="margin-top: 10px;"></textarea>
       <textarea id="tarot3" placeholder="3）主牌 2 解析" style="margin-top: 10px;"></textarea>
-      <textarea id="tarot4" placeholder="4）主牌 3 解析" style="margin-top: 10px;"></textarea>
+      <textarea id="tarot4" placeholder="4）主牌 3 解析" style="margin-top: 10px;"></style>
       <textarea id="tarot5" placeholder="5）靈魂課題（底牌）" style="margin-top: 10px;"></textarea>
       <textarea id="tarot6" placeholder="6）總結（AI建議）" style="margin-top: 10px;"></textarea>
     </div>
@@ -643,7 +643,7 @@
     });
   }
 
-  // 3. 專屬顯化音頻說明卡生成器
+  // 3. 專屬顯化音頻說明卡生成器（雙音檔 + 全項目完整列出版）
   function generateAudioExplanationCard() {
     const clientName = document.getElementById('clientName').value.trim() || '個案';
     const textRaw = document.getElementById('sec6').value.trim();
@@ -660,140 +660,139 @@
     const canvas = document.getElementById('card-canvas');
     const ctx = canvas.getContext('2d');
 
-    // 採用高畫質質感長圖尺寸 1080 x 2200
+    // 動態計算 Canvas 高度，確保所有下載資料都能完整顯示且排版舒適
+    const baseHeight = 1150;
+    const itemHeight = 48;
+    const dynamicHeight = Math.max(1600, baseHeight + (lines.length * itemHeight));
+
     canvas.width = 1080;
-    canvas.height = 2200;
+    canvas.height = dynamicHeight;
 
     // 1. 背景漸層
-    const bgGrad = ctx.createLinearGradient(0, 0, 1080, 2200);
+    const bgGrad = ctx.createLinearGradient(0, 0, 1080, dynamicHeight);
     bgGrad.addColorStop(0, '#f8f5f8');
     bgGrad.addColorStop(0.3, '#f2ebf5');
     bgGrad.addColorStop(0.7, '#ebdcd0');
     bgGrad.addColorStop(1, '#e2d2c3');
     ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, 1080, 2200);
+    ctx.fillRect(0, 0, 1080, dynamicHeight);
 
     // 2. 邊框設計
     ctx.strokeStyle = '#b38b43';
     ctx.lineWidth = 3;
-    ctx.strokeRect(40, 40, 1000, 2120);
+    ctx.strokeRect(40, 40, 1000, dynamicHeight - 80);
     ctx.lineWidth = 1;
-    ctx.strokeRect(52, 52, 976, 2096);
+    ctx.strokeRect(52, 52, 976, dynamicHeight - 104);
 
     // 3. 頁首標題
     ctx.textAlign = 'center';
-    ctx.font = '700 42px "Noto Sans TC", sans-serif';
+    ctx.font = '700 40px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
-    ctx.fillText('專 屬 定 制 ： 量 子 頻 率 顯 化 音 頻', 540, 130);
+    ctx.fillText('專 屬 定 制 ： 量 子 頻 率 顯 化 音 頻', 540, 120);
 
-    ctx.font = '500 28px "Noto Sans TC", sans-serif';
+    ctx.font = '500 26px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#222023';
-    ctx.fillText(`Dear ${clientName}，這是為你量身打造的 15 分鐘專屬顯化音頻`, 540, 190);
+    ctx.fillText(`Dear ${clientName}，這是為你量身打造的專屬雙音軌顯化套組`, 540, 170);
 
-    // 4. 第一區塊：錄製語句清單卡片
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
-    ctx.beginPath();
-    ctx.roundRect(80, 240, 920, 480, 16);
-    ctx.fill();
-    ctx.strokeStyle = '#e0d4c5';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
+    // 4. 第一區塊：雙音檔核心介紹
     ctx.textAlign = 'left';
     ctx.font = '700 30px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
-    ctx.fillText('✨ 音頻內含專屬肯定句語音（17,500Hz 超音波刻錄）：', 110, 295);
+    ctx.fillText('🎧 專屬雙音軌設計說明', 80, 230);
 
-    ctx.font = '400 25px "Noto Sans TC", sans-serif';
-    ctx.fillStyle = '#2b292c';
-    let lineY = 350;
-    const maxShowLines = Math.min(lines.length, 6);
-    for (let i = 0; i < maxShowLines; i++) {
-      let displayStr = `${i + 1}. ${lines[i]}`;
-      if (displayStr.length > 32) displayStr = displayStr.substring(0, 31) + '...';
-      ctx.fillText(displayStr, 120, lineY);
-      lineY += 52;
-    }
-    if (lines.length > 6) {
-      ctx.fillStyle = '#636066';
-      ctx.fillText(`... 以及其餘共 ${lines.length} 條專屬下載資料`, 120, lineY);
-    }
+    // 音檔 A
+    ctx.font = '700 25px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#b38b43';
+    ctx.fillText('🗣️ 音檔 A｜15分鐘 顯化肯定句音檔（語音導引版）', 80, 275);
+    ctx.font = '400 22px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#222023';
+    ctx.fillText('・特色：由我親自錄製語音念誦，清晰可聞。', 80, 310);
+    ctx.fillText('・作用：透過表層意識主動聆聽與複誦，建立大腦全新的正向思考迴路。', 80, 345);
+
+    // 音檔 B
+    ctx.font = '700 25px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#b38b43';
+    ctx.fillText('🌌 音檔 B｜15分鐘 超音波潛意識調變音檔（隱形能量版）', 80, 405);
+    ctx.font = '400 22px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#222023';
+    ctx.fillText('・特色：將語音轉化為 17,500Hz 超音波，融入 432Hz 宇宙音樂（無語音聲）。', 80, 440);
+    ctx.fillText('・作用：繞過大腦「理性批判牆」，將正向信念直接寫入深層潛意識。', 80, 475);
 
     // 5. 第二區塊：科學與能量解密
-    ctx.textAlign = 'left';
-    ctx.font = '700 32px "Noto Sans TC", sans-serif';
+    ctx.font = '700 30px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
-    ctx.fillText('🧬 音頻科學與能量解密', 80, 780);
+    ctx.fillText('🧬 音頻科學與頻率調配', 80, 540);
 
-    // 432Hz
-    ctx.font = '700 27px "Noto Sans TC", sans-serif';
-    ctx.fillStyle = '#b38b43';
-    ctx.fillText('🌌 1. 432Hz 宇宙療癒心弦', 80, 835);
-
-    ctx.font = '400 24px "Noto Sans TC", sans-serif';
+    ctx.font = '400 22px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#222023';
-    ctx.fillText('背景融入「宇宙數學密碼」432Hz 自然正弦波，能釋放深層壓力、', 80, 875);
-    ctx.fillText('引導腦波進入 θ (Theta) 希塔波狀態，開啟潛意識深層大門。', 80, 915);
-
-    // 17500Hz
-    ctx.font = '700 27px "Noto Sans TC", sans-serif';
-    ctx.fillStyle = '#b38b43';
-    ctx.fillText('🗣️ 2. 17,500Hz 超音波潛意識調變（Silent Subliminal）', 80, 980);
-
-    ctx.font = '400 24px "Noto Sans TC", sans-serif';
-    ctx.fillStyle = '#222023';
-    ctx.fillText('採用 Lowery 專利技術，將為你錄製的肯定句推移至 17,500Hz 極高頻，', 80, 1020);
-    ctx.fillText('直接繞過大腦的「理性批判牆」，讓正向信念無阻礙寫入潛意識。', 80, 1060);
+    ctx.fillText('・432Hz 宇宙療癒心弦：共振地球舒曼波，引導腦波進入 θ (Theta) 深層放鬆波。', 80, 580);
+    ctx.fillText('・17,500Hz Silent Subliminal：採用 Lowery 專利技術，使大腦聽覺皮質無阻礙接收。', 80, 615);
 
     // 6. 第三區塊：聆聽指南卡片
     ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
     ctx.beginPath();
-    ctx.roundRect(80, 1120, 920, 780, 16);
+    ctx.roundRect(80, 660, 920, 340, 16);
     ctx.fill();
     ctx.strokeStyle = '#b38b43';
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    ctx.font = '700 32px "Noto Sans TC", sans-serif';
+    ctx.font = '700 26px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
-    ctx.fillText('🎧 專屬聆聽指南', 120, 1180);
+    ctx.fillText('📋 專屬聆聽指南', 120, 705);
 
-    // 設備建議
-    ctx.font = '700 26px "Noto Sans TC", sans-serif';
+    ctx.font = '700 22px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#222023';
-    ctx.fillText('📱 器材設備建議：', 120, 1235);
-    ctx.font = '400 23px "Noto Sans TC", sans-serif';
+    ctx.fillText('📱 器材與設定建議：', 120, 745);
+    ctx.font = '400 20px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#444';
-    ctx.fillText('建議使用全罩式耳機、高音質耳機或細緻的家用音響聆聽。', 120, 1275);
-    ctx.fillText('＊小提醒：手機內建喇叭可能過濾高頻。請確保音樂軟體未開啟', 120, 1315);
-    ctx.fillText('「音效等化器 (EQ)」或「高頻壓縮/省電模式」，以保留完整訊號。', 120, 1355);
+    ctx.fillText('建議使用立體聲耳機。播放時請勿開啟「EQ音效等化器」或「高頻壓縮/省電模式」。', 120, 775);
 
-    // 音量
-    ctx.font = '700 26px "Noto Sans TC", sans-serif';
+    ctx.font = '700 22px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#222023';
-    ctx.fillText('🔊 音量設定：', 120, 1425);
-    ctx.font = '400 23px "Noto Sans TC", sans-serif';
+    ctx.fillText('🔊 音量與聆聽時機：', 120, 820);
+    ctx.font = '400 20px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#444';
-    ctx.fillText('調至舒適適中即可，雖然聽不見說話聲，高頻能量仍穩定運作中。', 120, 1465);
+    ctx.fillText('保持適中舒適音量。非常適合於「清晨醒來」或「睡前閉眼」時聆聽。', 120, 850);
+    ctx.fillText('💡 建議：可交替收聽音檔 A（清醒建立意識）與音檔 B（睡前/背景播放深層刻錄）。', 120, 880);
 
-    // 時機
+    // 7. 第四區塊：完整下載項目清單卡片（緊接在指南下方，不留空隙）
+    const listStartY = 1030;
+    const listHeight = (lines.length * itemHeight) + 90;
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.beginPath();
+    ctx.roundRect(80, listStartY, 920, listHeight, 16);
+    ctx.fill();
+    ctx.strokeStyle = '#e0d4c5';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
     ctx.font = '700 26px "Noto Sans TC", sans-serif';
-    ctx.fillStyle = '#222023';
-    ctx.fillText('🌙 最佳聆聽時機：', 120, 1535);
-    ctx.font = '400 23px "Noto Sans TC", sans-serif';
-    ctx.fillStyle = '#444';
-    ctx.fillText('非常適合在每天「清晨剛醒來時」或「晚上臨睡前」閉眼聆聽，', 120, 1575);
-    ctx.fillText('這兩個時段是大腦進入 Theta 波、顯化效果最好的黃金半小時。', 120, 1615);
+    ctx.fillStyle = '#614d75';
+    ctx.fillText('✨ 本次音頻完整刻錄之下載資料（請放心聆聽）：', 110, listStartY + 50);
 
-    // 7. 結尾與簽名
+    ctx.font = '400 22px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#2b292c';
+    let lineY = listStartY + 100;
+
+    for (let i = 0; i < lines.length; i++) {
+      let displayStr = `${i + 1}. ${lines[i]}`;
+      if (displayStr.length > 33) displayStr = displayStr.substring(0, 32) + '...';
+      ctx.fillText(displayStr, 120, lineY);
+      lineY += itemHeight;
+    }
+
+    // 8. 結尾與簽名（動態緊跟在項目清單下方）
+    const footerY = listStartY + listHeight + 70;
     ctx.textAlign = 'center';
-    ctx.font = '500 32px "Noto Sans TC", sans-serif';
+    ctx.font = '500 30px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
-    ctx.fillText('「你所尋求的，也正尋求著你。」', 540, 1970);
+    ctx.fillText('「你所尋求的，也正尋求著你。」', 540, footerY);
 
-    ctx.font = '400 26px "Noto Sans TC", sans-serif';
+    ctx.font = '400 24px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#636066';
-    ctx.fillText('願這道專屬頻率，陪伴你輕鬆豐盛地顯化理想生活。', 540, 2020);
+    ctx.fillText('願這道專屬頻率，陪伴你輕鬆豐盛地顯化理想生活。', 540, footerY + 45);
 
     // 下載圖片
     const dataUrl = canvas.toDataURL('image/png');
