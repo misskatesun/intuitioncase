@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
-    /* Canva 風格 Pantone 極簡色系：柔紫 (Pantone 15-3817) & 暖沙金 (Pantone 13-1012) */
+    /* Canva 風格 Pantone 極簡色系 */
     :root {
       --pantone-purple: #614d75;
       --pantone-light-purple: #f1ecf5;
@@ -171,7 +171,7 @@
       box-shadow: 0 8px 22px rgba(0,0,0,0.12);
     }
 
-    /* ===== Canva 極簡風 PDF/列印樣式 ===== */
+    /* Canva 極簡風 PDF 列印樣式 */
     #report-output {
       display: none;
       background: #ffffff;
@@ -185,7 +185,6 @@
       margin-bottom: 20px;
       border-bottom: 2px solid var(--pantone-sand);
       page-break-after: avoid;
-      break-after: avoid;
     }
 
     .report-title {
@@ -211,8 +210,6 @@
       margin: 20px 0 28px 0;
       text-align: center;
       page-break-inside: avoid;
-      page-break-after: avoid;
-      break-after: avoid;
     }
 
     .top-image-section img {
@@ -253,21 +250,10 @@
     }
 
     @media print {
-      body {
-        background-color: #ffffff;
-        padding: 0;
-      }
-      .container {
-        display: none !important;
-      }
-      #report-output {
-        display: block !important;
-        padding: 0;
-      }
-      @page {
-        margin: 10mm;
-        size: A4 portrait;
-      }
+      body { background-color: #ffffff; padding: 0; }
+      .container { display: none !important; }
+      #report-output { display: block !important; padding: 0; }
+      @page { margin: 10mm; size: A4 portrait; }
     }
   </style>
 </head>
@@ -552,7 +538,7 @@
     }
 
     const lines = textRaw.split('\n')
-      .map(line => line.replace(/^[0-9\.\s、]+/g, '').trim())
+      .map(line => line.replace(/^[0-9\.\s、]+/g, '').replace(/[。]$/, '').trim())
       .filter(line => line.length > 0);
 
     if (lines.length === 0) {
@@ -623,19 +609,21 @@
       zip.file(`資料下載卡片_${i + 1}.png`, dataUrl.replace(/^data:image\/png;base64,/, ""), {base64: true});
     }
 
+    // 動態算全集卡長度
+    const listCardHeight = Math.max(1920, 450 + (lines.length * 60));
     canvas.width = 1080;
-    canvas.height = 1920;
+    canvas.height = listCardHeight;
 
-    const bgGrad = ctx.createLinearGradient(0, 0, 1080, 1920);
+    const bgGrad = ctx.createLinearGradient(0, 0, 1080, listCardHeight);
     bgGrad.addColorStop(0, '#fbf9f7');
     bgGrad.addColorStop(0.5, '#f2edf4');
     bgGrad.addColorStop(1, '#e5dad0');
     ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, 1080, 1920);
+    ctx.fillRect(0, 0, 1080, listCardHeight);
 
     ctx.strokeStyle = '#b38b43';
     ctx.lineWidth = 3;
-    ctx.strokeRect(50, 50, 980, 1820);
+    ctx.strokeRect(50, 50, 980, listCardHeight - 100);
 
     ctx.font = '700 46px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
@@ -647,20 +635,16 @@
     ctx.textAlign = 'left';
 
     let listStartY = 230;
-    const itemLineHeight = Math.min(62, 1500 / lines.length);
-
     lines.forEach((line, idx) => {
       let displayStr = `${idx + 1}. ${line}`;
-      if (displayStr.length > 30) {
-        displayStr = displayStr.substring(0, 29) + '...';
-      }
-      ctx.fillText(displayStr, 90, listStartY + (idx * itemLineHeight));
+      if (displayStr.length > 30) displayStr = displayStr.substring(0, 29) + '...';
+      ctx.fillText(displayStr, 90, listStartY + (idx * 55));
     });
 
     ctx.font = '400 32px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
     ctx.textAlign = 'center';
-    ctx.fillText('謝謝你、我愛你', 540, 1810);
+    ctx.fillText('謝謝你、我愛你', 540, listCardHeight - 100);
 
     const fullCardData = canvas.toDataURL('image/png');
     zip.file(`資料下載_全集總覽卡.png`, fullCardData.replace(/^data:image\/png;base64,/, ""), {base64: true});
@@ -692,7 +676,7 @@
     return currY + lineHeight;
   }
 
-  // 3. 專屬顯化音頻說明卡生成器（精確動態高度排版）
+  // 3. 專屬顯化音頻說明卡生成器（精確自適應計算，不破圖）
   async function generateAudioExplanationCard() {
     const clientName = document.getElementById('clientName').value.trim() || '個案';
     const textRaw = document.getElementById('sec6').value.trim();
@@ -703,13 +687,13 @@
     }
 
     const lines = textRaw.split('\n')
-      .map(line => line.replace(/^[0-9\.\s、]+/g, '').trim())
+      .map(line => line.replace(/^[0-9\.\s、]+/g, '').replace(/[。]$/, '').trim())
       .filter(line => line.length > 0);
 
     const canvas = document.getElementById('card-canvas');
     const ctx = canvas.getContext('2d');
 
-    // 預先計算圖片與下載項目的高度
+    // 1. 預先計算圖片與下載項目的精確高度
     let hasSpecImage = false;
     let specImageObj = null;
     let specImageHeight = 0;
@@ -719,20 +703,23 @@
       specImageObj = new Image();
       specImageObj.src = uploadedSpecDataUrl;
       await new Promise(r => specImageObj.onload = r);
-      // 固定寬度 840，動態計算比例高度
       specImageHeight = (specImageObj.height / specImageObj.width) * 840;
     }
 
-    // 動態計算 Canvas 總高度
-    const listHeight = (lines.length * 52) + 100;
-    const audio2Height = 980 + (hasSpecImage ? (specImageHeight + 110) : 0);
-    const estimatedContentHeight = 650 + audio2Height + listHeight + 220;
-    const totalCanvasHeight = Math.max(estimatedContentHeight, 2200);
+    // 計算「音檔下載資料」動態高度（多行完全伸展）
+    const listCardPadding = 120; // 內距
+    const listHeight = listCardPadding + (lines.length * 52); 
+
+    // 音檔 ② 卡片區塊總高度動態估算
+    const audio2Height = 880 + (hasSpecImage ? (specImageHeight + 90) : 0);
+
+    // Canvas 總高度動態計算（保留邊距與底欄）
+    const totalCanvasHeight = 140 + 60 + 75 + 300 + 240 + audio2Height + listHeight + 250;
 
     canvas.width = 1080;
     canvas.height = totalCanvasHeight;
 
-    // 1. 底色漸層
+    // A. 背景漸層
     const bgGrad = ctx.createLinearGradient(0, 0, 1080, totalCanvasHeight);
     bgGrad.addColorStop(0, '#f8f5f8');
     bgGrad.addColorStop(0.3, '#f2ebf5');
@@ -741,7 +728,7 @@
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, 1080, totalCanvasHeight);
 
-    // 2. 外側金邊框
+    // B. 外側金邊框
     ctx.strokeStyle = '#b38b43';
     ctx.lineWidth = 3;
     ctx.strokeRect(40, 40, 1000, totalCanvasHeight - 80);
@@ -750,7 +737,7 @@
 
     let curY = 140;
 
-    // 3. 大標題
+    // C. 頂部大標題
     ctx.textAlign = 'center';
     ctx.font = '700 42px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
@@ -763,10 +750,10 @@
 
     curY += 75;
 
-    // 4. 頂部共同說明區塊
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
+    // D. 雙音檔特色區塊
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
     ctx.beginPath();
-    ctx.roundRect(80, curY, 920, 270, 18);
+    ctx.roundRect(80, curY, 920, 260, 18);
     ctx.fill();
     ctx.strokeStyle = '#e0d4c5';
     ctx.lineWidth = 1.5;
@@ -775,27 +762,28 @@
     ctx.textAlign = 'left';
     ctx.font = '700 28px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
-    ctx.fillText('🌌 雙音頻共同頻率基底與顯化優勢', 120, curY + 55);
+    ctx.fillText('🌌 雙音檔特色', 120, curY + 55);
 
+    // 精確排版標題與內文對齊，解決「冒號與文字間距怪異」
     ctx.font = '700 24px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#b38b43';
     ctx.fillText('・432Hz 宇宙療癒心弦：', 120, curY + 110);
     ctx.font = '400 22px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#2b292c';
-    ctx.fillText('共振地球舒曼波，引導腦波進入 θ (Theta) 希塔深層放鬆波。', 380, curY + 110);
+    ctx.fillText('共振地球舒曼波，引導腦波進入 θ (Theta) 希塔深層放鬆波', 385, curY + 110);
 
     ctx.font = '700 24px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#b38b43';
-    ctx.fillText('・雙音軌加乘效益：', 120, curY + 160);
+    ctx.fillText('・雙音檔加乘效益：', 120, curY + 160);
     ctx.font = '400 22px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#2b292c';
-    ctx.fillText('同時從「表意識」與「潛意識」兩大入口注入高頻能量，', 380, curY + 160);
-    ctx.fillText('發揮 1+1 > 2 的量子共振顯化效果。', 380, curY + 195);
+    ctx.fillText('同時從「表意識」與「潛意識」兩大入口注入高頻能量', 385, curY + 160);
+    ctx.fillText('發揮 1+1 > 2 的量子共振顯化效果', 385, curY + 195);
 
-    curY += 330;
+    curY += 310;
 
-    // 5. 音檔 ① 區塊
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    // E. 音檔 ① 區塊
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
     ctx.beginPath();
     ctx.roundRect(80, curY, 920, 190, 18);
     ctx.fill();
@@ -812,10 +800,10 @@
     ctx.fillText('・特色：凱特錄製語音，融入432Hz宇宙音樂', 120, curY + 105);
     ctx.fillText('・作用：透過大腦主動聆聽複誦，建立全新的表意識資料迴路', 120, curY + 145);
 
-    curY += 240;
+    curY += 230;
 
-    // 6. 音檔 ② 區塊（包覆高聲波 + 聆聽指南 + 頻譜截圖）
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    // F. 音檔 ② 區塊（整合隱形能量、高聲波、頻譜截圖、專屬聆聽指南）
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
     ctx.beginPath();
     ctx.roundRect(80, curY, 920, audio2Height, 18);
     ctx.fill();
@@ -845,11 +833,11 @@
     ctx.fillStyle = '#444';
     ctx.fillText('採用 Lowery 專利技術調變，將語音推升至人耳難以察覺的極高頻音軌。雖然耳膜', 120, insideY);
     insideY += 32;
-    ctx.fillText('聽不到講話聲音，但大腦聽覺皮質與潛意識仍能持續穩定接收訊息。', 120, insideY);
+    ctx.fillText('聽不到講話聲音，但大腦聽覺皮質與潛意識仍能持續穩定接收訊息', 120, insideY);
 
-    // 頻譜圖上傳渲染區
+    // 頻譜截圖渲染
     if (hasSpecImage) {
-      insideY += 50;
+      insideY += 45;
       ctx.drawImage(specImageObj, 120, insideY, 840, specImageHeight);
       insideY += specImageHeight + 35;
 
@@ -858,24 +846,19 @@
       ctx.fillStyle = '#614d75';
       ctx.fillText('你的專屬語音隱形儲存在這裡', 540, insideY);
       ctx.textAlign = 'left';
-      insideY += 30;
+      insideY += 20;
     }
 
-    // 專屬聆聽指南
-    insideY += 45;
+    // 專屬聆聽指南（統一風格與規範字體大小）
+    insideY += 50;
     ctx.font = '700 26px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
     ctx.fillText('🎧 專屬聆聽指南', 120, insideY);
 
     insideY += 45;
-    ctx.font = '700 22px "Noto Sans TC", sans-serif';
+    ctx.font = '400 21px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#222023';
-    ctx.fillText('📱 器材建議：為確保高頻能量完整傳遞', 120, insideY);
-
-    insideY += 36;
-    ctx.font = '400 20px "Noto Sans TC", sans-serif';
-    ctx.fillStyle = '#333';
-    insideY = wrapText(ctx, '為了讓 17,500Hz 的高頻音訊號能完整、無損地傳送到您的聽覺大腦，建議您聆聽時使用全罩式立體聲耳機、高音質耳機，或音質較細緻的家用音響。', 120, insideY, 840, 32);
+    insideY = wrapText(ctx, '為了讓 17,500Hz 的高頻音訊號能完整、無損地傳送到您的聽覺大腦，建議您聆聽時使用全罩式立體聲耳機、高音質耳機，或音質較細緻的家用音響', 120, insideY, 840, 32);
 
     insideY += 15;
     ctx.font = '400 19px "Noto Sans TC", sans-serif';
@@ -883,29 +866,19 @@
     insideY = wrapText(ctx, '💡 小提醒：由於手機內建的喇叭或一般的單耳藍牙耳機，在設計上會自動過濾掉人類聽覺邊緣的高頻聲音（通常只到15,000Hz以下），這可能會讓專屬的潛意識語音無法發揮最大功效。使用效能完整的耳機聆聽，最能完美接收這份豐盛的能量喔！', 120, insideY, 840, 30);
 
     insideY += 20;
-    ctx.font = '700 22px "Noto Sans TC", sans-serif';
+    ctx.font = '400 21px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#222023';
-    ctx.fillText('⚙️ 設定建議：', 120, insideY);
-    ctx.font = '400 20px "Noto Sans TC", sans-serif';
-    ctx.fillStyle = '#333';
-    ctx.fillText('播放時建議不要開啟「EQ音效等化器」或「高頻壓縮/省電模式」。', 260, insideY);
+    ctx.fillText('⚙️ 設定建議：播放時建議不要開啟「EQ音效等化器」或「高頻壓縮/省電模式」', 120, insideY);
 
     insideY += 45;
-    ctx.font = '700 22px "Noto Sans TC", sans-serif';
-    ctx.fillStyle = '#222023';
-    ctx.fillText('🔊 音量與聆聽時機：', 120, insideY);
-
-    insideY += 35;
-    ctx.font = '400 20px "Noto Sans TC", sans-serif';
-    ctx.fillStyle = '#333';
-    ctx.fillText('音量保持適中舒適即可。非常適合於「清晨醒來」或「睡前閉眼」時聆聽，', 120, insideY);
+    ctx.fillText('🔊 音量與聆聽時機：音量保持適中舒適即可。非常適合於「清晨醒來」或「睡前閉眼」時聆聽，', 120, insideY);
     insideY += 32;
-    ctx.fillText('這兩個時段是大腦進入 Theta 波、顯化效果最強烈的黃金半小時。', 120, insideY);
+    ctx.fillText('這兩個時段是大腦進入 Theta 波、顯化效果最強烈的黃金半小時', 120, insideY);
 
-    curY += audio2Height + 50;
+    curY += audio2Height + 45;
 
-    // 7. 音檔下載資料清單（完全依據項目數量動態展延白框）
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    // G. 音檔下載資料（根據條數，完全自適應白框高度，解決破圖）
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
     ctx.beginPath();
     ctx.roundRect(80, curY, 920, listHeight, 18);
     ctx.fill();
@@ -915,7 +888,7 @@
 
     ctx.font = '700 26px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
-    ctx.fillText('✨ 音檔下載資料：', 120, curY + 55);
+    ctx.fillText('✨ 音檔下載資料', 120, curY + 55);
 
     ctx.font = '400 22px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#2b292c';
@@ -930,7 +903,7 @@
 
     curY += listHeight + 80;
 
-    // 8. 頁尾結尾與簽名（精確緊跟在下方）
+    // H. 頁尾結尾語
     ctx.textAlign = 'center';
     ctx.font = '500 30px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
@@ -938,9 +911,9 @@
 
     ctx.font = '400 24px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#636066';
-    ctx.fillText('願這道專屬頻率，陪伴你輕鬆豐盛地顯化理想生活。', 540, curY + 45);
+    ctx.fillText('願這道專屬頻率，陪伴你輕鬆豐盛地顯化理想生活', 540, curY + 45);
 
-    // 觸發下載 PNG 照片
+    // 下載生成影像
     const dataUrl = canvas.toDataURL('image/png');
     const a = document.createElement('a');
     a.href = dataUrl;
