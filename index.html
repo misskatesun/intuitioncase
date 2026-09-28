@@ -206,18 +206,33 @@
       font-weight: 500;
     }
 
+    /* 牌陣圖片專屬標題與放大置中樣式 */
     .top-image-section {
-      margin: 20px 0 28px 0;
+      margin: 25px 0 35px 0;
       text-align: center;
       page-break-inside: avoid;
     }
 
+    .top-image-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--pantone-purple);
+      margin-bottom: 18px;
+      letter-spacing: 1.5px;
+      display: inline-block;
+      padding-bottom: 4px;
+      border-bottom: 2px solid var(--pantone-gold);
+    }
+
     .top-image-section img {
-      max-width: 100%;
-      max-height: 380px;
-      border-radius: 12px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+      max-width: 85%;
+      max-height: 520px;
+      object-fit: contain;
+      border-radius: 14px;
+      box-shadow: 0 8px 25px rgba(97, 77, 117, 0.12);
       border: 1px solid var(--pantone-sand);
+      margin: 0 auto;
+      display: block;
     }
 
     .section-box {
@@ -519,8 +534,14 @@
     const imgContainer = document.getElementById('out-img-container');
     imgContainer.innerHTML = '';
     if (uploadedImgDataUrl) {
+      const titleEl = document.createElement('div');
+      titleEl.className = 'top-image-title';
+      titleEl.innerText = '✨ 你的牌陣與卦象';
+      
       const img = document.createElement('img');
       img.src = uploadedImgDataUrl;
+      
+      imgContainer.appendChild(titleEl);
       imgContainer.appendChild(img);
     }
 
@@ -676,7 +697,7 @@
     return currY + lineHeight;
   }
 
-  // 3. 專屬顯化音頻說明卡生成器（雙重渲染防破圖版）
+  // 3. 專屬顯化音頻說明卡生成器
   async function generateAudioExplanationCard() {
     const clientName = document.getElementById('clientName').value.trim() || '個案';
     const textRaw = document.getElementById('sec6').value.trim();
@@ -706,21 +727,16 @@
       specImageHeight = (specImageObj.height / specImageObj.width) * 840;
     }
 
-    // -------------------------------------------------------------
-    // 【第一階段：模擬計算各區塊真實高度】
-    // -------------------------------------------------------------
+    // 模擬計算音檔 ② 真實動態高度
     let simY = 0;
-
-    // 音檔 ② 內容模擬計算
-    simY += 50; // 標題
-    simY += 45 + 38; // 特色與作用
-    simY += 55 + 38 + 32; // 技術說明
+    simY += 50; 
+    simY += 45 + 38; 
+    simY += 55 + 38 + 32; 
     if (hasSpecImage) {
       simY += 40 + specImageHeight + 35 + 15;
     }
-    simY += 50 + 40; // 聆聽指南標題與內文起點
+    simY += 50 + 40; 
 
-    // 模擬計算 wrapText 行數
     ctx.font = '400 21px "Noto Sans TC", sans-serif';
     simY = wrapText(ctx, '為了讓 17,500Hz 的高頻音訊號能完整、無損地傳送到您的聽覺大腦，建議您聆聽時使用全罩式立體聲耳機、高音質耳機，或音質較細緻的家用音響', 120, simY, 840, 32);
     simY += 12;
@@ -735,19 +751,14 @@
 
     simY = wrapText(ctx, '🔊 音量與聆聽時機：音量保持適中舒適即可。非常適合於「清晨醒來」或「睡前閉眼」時聆聽，這兩個時段是大腦進入 Theta 波、顯化效果最強烈的黃金半小時', 120, simY, 840, 32);
 
-    const actualAudio2Height = simY + 35; // 音檔 ② 白框真實高度（加上底部留白）
-    const actualListHeight = 120 + (lines.length * 52); // 音檔下載資料真實高度
+    const actualAudio2Height = simY + 35;
+    const actualListHeight = 120 + (lines.length * 52); 
 
-    // Canvas 畫布總高度（精確伸展，底部預留 180px 空間，絕對不打到金邊框）
     const totalCanvasHeight = 140 + 60 + 75 + 280 + 230 + actualAudio2Height + actualListHeight + 220;
 
     canvas.width = 1080;
     canvas.height = totalCanvasHeight;
 
-    // -------------------------------------------------------------
-    // 【第二階段：正式繪製 Canvas】
-    // -------------------------------------------------------------
-    
     // A. 背景漸層
     const bgGrad = ctx.createLinearGradient(0, 0, 1080, totalCanvasHeight);
     bgGrad.addColorStop(0, '#f8f5f8');
@@ -830,7 +841,7 @@
 
     curY += 230;
 
-    // F. 音檔 ② 區塊（動態高度完全包含所有內文，絕不破圖）
+    // F. 音檔 ② 區塊
     ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
     ctx.beginPath();
     ctx.roundRect(80, curY, 920, actualAudio2Height, 18);
@@ -851,7 +862,6 @@
     insideY += 38;
     ctx.fillText('・作用：繞過大腦「理性批判牆」，將下載資料直接寫入深層潛意識資料庫', 120, insideY);
 
-    // 高頻音技術說明
     insideY += 55;
     ctx.font = '700 24px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#b38b43';
@@ -863,7 +873,6 @@
     insideY += 32;
     ctx.fillText('聽不到講話聲音，但大腦聽覺皮質與潛意識仍能持續穩定接收訊息', 120, insideY);
 
-    // 頻譜截圖渲染
     if (hasSpecImage) {
       insideY += 40;
       ctx.drawImage(specImageObj, 120, insideY, 840, specImageHeight);
@@ -877,7 +886,6 @@
       insideY += 15;
     }
 
-    // 專屬聆聽指南
     insideY += 50;
     ctx.font = '700 26px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
@@ -901,7 +909,6 @@
     insideY += 12;
     insideY = wrapText(ctx, '🔊 音量與聆聽時機：音量保持適中舒適即可。非常適合於「清晨醒來」或「睡前閉眼」時聆聽，這兩個時段是大腦進入 Theta 波、顯化效果最強烈的黃金半小時', 120, insideY, 840, 32);
 
-    // 音檔 ② 下方推進
     curY += actualAudio2Height + 40;
 
     // G. 音檔下載資料
@@ -930,7 +937,7 @@
 
     curY += actualListHeight + 65;
 
-    // H. 頁尾結尾語（完美置中，留有優雅安全距離，絕對不壓金邊框）
+    // H. 頁尾結尾語
     ctx.textAlign = 'center';
     ctx.font = '500 30px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
