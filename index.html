@@ -206,7 +206,6 @@
       font-weight: 500;
     }
 
-    /* 牌陣圖片專屬標題與黃金比例置中 */
     .top-image-section {
       margin: 15px 0 25px 0;
       text-align: center;
@@ -256,6 +255,56 @@
       line-height: 1.9;
       font-size: 17px;
       color: #2b292c;
+    }
+
+    /* 第七區塊專屬排版樣式 */
+    .method-sub-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--pantone-purple);
+      margin-top: 15px;
+      margin-bottom: 8px;
+    }
+
+    .method-item {
+      margin-bottom: 10px;
+      padding-left: 5px;
+    }
+
+    .method-item-title {
+      font-weight: 700;
+      color: #222023;
+    }
+
+    .footer-blessing {
+      margin-top: 35px;
+      text-align: center;
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--pantone-purple);
+      border-top: 1px dashed var(--pantone-sand);
+      padding-top: 20px;
+    }
+
+    .footer-social {
+      margin-top: 20px;
+      background-color: var(--pantone-light-purple);
+      padding: 18px 20px;
+      border-radius: 10px;
+      font-size: 15px;
+    }
+
+    .footer-social-title {
+      font-weight: 700;
+      color: var(--pantone-purple);
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .footer-social a {
+      color: var(--pantone-purple);
+      text-decoration: underline;
+      word-break: break-all;
     }
 
     #card-canvas {
@@ -405,6 +454,51 @@
     <h2 class="section-title">六、推薦下載的資料</h2>
     <div class="section-content" id="out-sec6"></div>
   </div>
+
+  <!-- 七、療癒清理與下載資料（固定說明頁面） -->
+  <div class="section-box">
+    <h2 class="section-title">七、療癒清理與下載資料</h2>
+    <div class="section-content">
+      
+      <div class="method-sub-title">療癒清理資料方法</div>
+      
+      <div class="method-item">
+        <div class="method-item-title">√ 默唸【零極限】:</div>
+        <div><strong>精簡版:</strong>對不起、請原諒我、謝謝你、我愛你</div>
+        <div><strong>完整版:</strong>對不起、請原諒過去的我不明白、才有這樣的資料，XX(對方的名字、如果有他人的話)謝謝你、給我機會清理這個資料，我愛你。</div>
+      </div>
+
+      <div class="method-item">
+        <div class="method-item-title">√ 宣告一下:</div>
+        <div>我(們)的本質(都)是沒有任何問題的，只是有些資料、才有這樣的劇情。資料也不是我(們)的，是過去世的祖先或前世，有著類似的傷痛經驗，他們也不是故意的，沒有人是故意的。</div>
+      </div>
+
+      <div class="method-item">
+        <div class="method-item-title">√ 唸數遍經文、咒，如:</div>
+        <div>嗡啊吽、南無阿彌陀佛、南無觀世音菩薩、地藏菩薩摩訶薩、廣大不空摩尼咒、聖經...等</div>
+      </div>
+
+      <div class="method-sub-title" style="margin-top: 25px;">下載資料方法</div>
+      <div>每天唸這些資料給自己聽，讓大腦表意識記得後，漸漸會進入到潛意識、也就是個人意識資料庫中</div>
+      <div style="margin-top: 8px;">到宇宙源頭的白光中對宇宙源頭說:「請為我下載這個資料，謝謝你、我愛你」想像宇宙源頭白光無條件的愛、化身為你想要下載的資料，也想像你有個個人意識資料庫(例如:一顆懸浮在你頭頂的光球)，再想像白光資料進入到你的資料庫中。</div>
+      <div style="margin-top: 8px; font-size: 15px; color: var(--pantone-soft-gray);">
+        (如何連結宇宙源頭的白光可參考凱特這支影片: <a href="https://youtu.be/ydKdGoucbgc" target="_blank" style="color: var(--pantone-purple);">https://youtu.be/ydKdGoucbgc</a>)
+      </div>
+
+      <div class="footer-blessing">
+        願你在每一個當下，都能活出真實的自己，感受到輕而易舉、本自具足。宇宙愛你
+      </div>
+
+      <div class="footer-social">
+        <div class="footer-social-title">凱特的社群平台</div>
+        <div><strong>YouTube:</strong> <a href="https://www.youtube.com/@katesungoodlife" target="_blank">https://www.youtube.com/@katesungoodlife</a></div>
+        <div><strong>FB:</strong> <a href="https://www.facebook.com/katesuncourse" target="_blank">https://www.facebook.com/katesuncourse</a></div>
+        <div><strong>IG:</strong> <a href="https://www.instagram.com/katesuncourse/" target="_blank">https://www.instagram.com/katesuncourse/</a></div>
+      </div>
+
+    </div>
+  </div>
+
 </div>
 
 <canvas id="card-canvas"></canvas>
@@ -712,7 +806,6 @@
     const canvas = document.getElementById('card-canvas');
     const ctx = canvas.getContext('2d');
 
-    // 預先加載頻譜圖片
     let hasSpecImage = false;
     let specImageObj = null;
     let specImageHeight = 0;
@@ -725,7 +818,6 @@
       specImageHeight = (specImageObj.height / specImageObj.width) * 840;
     }
 
-    // 模擬計算音檔 ② 真實動態高度
     let simY = 0;
     simY += 50; 
     simY += 45 + 38; 
@@ -757,7 +849,6 @@
     canvas.width = 1080;
     canvas.height = totalCanvasHeight;
 
-    // A. 背景漸層
     const bgGrad = ctx.createLinearGradient(0, 0, 1080, totalCanvasHeight);
     bgGrad.addColorStop(0, '#f8f5f8');
     bgGrad.addColorStop(0.3, '#f2ebf5');
@@ -766,7 +857,6 @@
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, 1080, totalCanvasHeight);
 
-    // B. 外側雙金邊框
     ctx.strokeStyle = '#b38b43';
     ctx.lineWidth = 3;
     ctx.strokeRect(40, 40, 1000, totalCanvasHeight - 80);
@@ -775,7 +865,6 @@
 
     let curY = 140;
 
-    // C. 頂部大標題
     ctx.textAlign = 'center';
     ctx.font = '700 42px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
@@ -788,7 +877,6 @@
 
     curY += 75;
 
-    // D. 雙音檔特色區塊
     ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
     ctx.beginPath();
     ctx.roundRect(80, curY, 920, 240, 18);
@@ -819,7 +907,6 @@
 
     curY += 280;
 
-    // E. 音檔 ① 區塊
     ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
     ctx.beginPath();
     ctx.roundRect(80, curY, 920, 190, 18);
@@ -839,7 +926,6 @@
 
     curY += 230;
 
-    // F. 音檔 ② 區塊
     ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
     ctx.beginPath();
     ctx.roundRect(80, curY, 920, actualAudio2Height, 18);
@@ -909,7 +995,6 @@
 
     curY += actualAudio2Height + 40;
 
-    // G. 音檔下載資料
     ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
     ctx.beginPath();
     ctx.roundRect(80, curY, 920, actualListHeight, 18);
@@ -935,7 +1020,6 @@
 
     curY += actualListHeight + 65;
 
-    // H. 頁尾結尾語
     ctx.textAlign = 'center';
     ctx.font = '500 30px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
@@ -945,7 +1029,6 @@
     ctx.fillStyle = '#636066';
     ctx.fillText('願這道專屬頻率，陪伴你輕鬆豐盛地顯化理想生活', 540, curY + 45);
 
-    // 下載生成影像
     const dataUrl = canvas.toDataURL('image/png');
     const a = document.createElement('a');
     a.href = dataUrl;
