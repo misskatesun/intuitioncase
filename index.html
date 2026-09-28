@@ -655,7 +655,7 @@
     });
   }
 
-  // 輔助函式：文字自動換行列印
+  // 輔助函式：文字自動換行，精確計算 Y 軸座標
   function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
     const words = text.split('');
     let line = '';
@@ -676,7 +676,7 @@
     return currY + lineHeight;
   }
 
-  // 3. 專屬顯化音頻說明卡生成器（精確自適應計算，不破圖）
+  // 3. 專屬顯化音頻說明卡生成器
   async function generateAudioExplanationCard() {
     const clientName = document.getElementById('clientName').value.trim() || '個案';
     const textRaw = document.getElementById('sec6').value.trim();
@@ -693,7 +693,7 @@
     const canvas = document.getElementById('card-canvas');
     const ctx = canvas.getContext('2d');
 
-    // 1. 預先計算圖片與下載項目的精確高度
+    // 預先加載頻譜圖片（若有上傳）
     let hasSpecImage = false;
     let specImageObj = null;
     let specImageHeight = 0;
@@ -706,15 +706,15 @@
       specImageHeight = (specImageObj.height / specImageObj.width) * 840;
     }
 
-    // 計算「音檔下載資料」動態高度（多行完全伸展）
-    const listCardPadding = 120; // 內距
+    // 精確測算「音檔 ②」區塊的實際高度，完全移除過多留白
+    const audio2Height = 560 + (hasSpecImage ? (specImageHeight + 90) : 0);
+
+    // 計算「音檔下載資料」區域高度
+    const listCardPadding = 120;
     const listHeight = listCardPadding + (lines.length * 52); 
 
-    // 音檔 ② 卡片區塊總高度動態估算
-    const audio2Height = 880 + (hasSpecImage ? (specImageHeight + 90) : 0);
-
-    // Canvas 總高度動態計算（保留邊距與底欄）
-    const totalCanvasHeight = 140 + 60 + 75 + 300 + 240 + audio2Height + listHeight + 250;
+    // Canvas 總高度動態分配（緊緻縮小）
+    const totalCanvasHeight = 140 + 60 + 75 + 280 + 230 + audio2Height + listHeight + 180;
 
     canvas.width = 1080;
     canvas.height = totalCanvasHeight;
@@ -728,7 +728,7 @@
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, 1080, totalCanvasHeight);
 
-    // B. 外側金邊框
+    // B. 外側雙金邊框
     ctx.strokeStyle = '#b38b43';
     ctx.lineWidth = 3;
     ctx.strokeRect(40, 40, 1000, totalCanvasHeight - 80);
@@ -753,7 +753,7 @@
     // D. 雙音檔特色區塊
     ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
     ctx.beginPath();
-    ctx.roundRect(80, curY, 920, 260, 18);
+    ctx.roundRect(80, curY, 920, 240, 18);
     ctx.fill();
     ctx.strokeStyle = '#e0d4c5';
     ctx.lineWidth = 1.5;
@@ -762,25 +762,24 @@
     ctx.textAlign = 'left';
     ctx.font = '700 28px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
-    ctx.fillText('🌌 雙音檔特色', 120, curY + 55);
-
-    // 精確排版標題與內文對齊，解決「冒號與文字間距怪異」
-    ctx.font = '700 24px "Noto Sans TC", sans-serif';
-    ctx.fillStyle = '#b38b43';
-    ctx.fillText('・432Hz 宇宙療癒心弦：', 120, curY + 110);
-    ctx.font = '400 22px "Noto Sans TC", sans-serif';
-    ctx.fillStyle = '#2b292c';
-    ctx.fillText('共振地球舒曼波，引導腦波進入 θ (Theta) 希塔深層放鬆波', 385, curY + 110);
+    ctx.fillText('🌌 雙音檔特色', 120, curY + 50);
 
     ctx.font = '700 24px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#b38b43';
-    ctx.fillText('・雙音檔加乘效益：', 120, curY + 160);
+    ctx.fillText('・432Hz 宇宙療癒心弦：', 120, curY + 100);
     ctx.font = '400 22px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#2b292c';
-    ctx.fillText('同時從「表意識」與「潛意識」兩大入口注入高頻能量', 385, curY + 160);
-    ctx.fillText('發揮 1+1 > 2 的量子共振顯化效果', 385, curY + 195);
+    ctx.fillText('共振地球舒曼波，引導腦波進入 θ (Theta) 希塔深層放鬆波', 385, curY + 100);
 
-    curY += 310;
+    ctx.font = '700 24px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#b38b43';
+    ctx.fillText('・雙音檔加乘效益：', 120, curY + 150);
+    ctx.font = '400 22px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = '#2b292c';
+    ctx.fillText('同時從「表意識」與「潛意識」兩大入口注入高頻能量', 385, curY + 150);
+    ctx.fillText('發揮 1+1 > 2 的量子共振顯化效果', 385, curY + 185);
+
+    curY += 280;
 
     // E. 音檔 ① 區塊
     ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
@@ -802,7 +801,7 @@
 
     curY += 230;
 
-    // F. 音檔 ② 區塊（整合隱形能量、高聲波、頻譜截圖、專屬聆聽指南）
+    // F. 音檔 ② 區塊（隱形能量版，高度緊緻無多餘空白）
     ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
     ctx.beginPath();
     ctx.roundRect(80, curY, 920, audio2Height, 18);
@@ -811,24 +810,24 @@
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    let insideY = curY + 55;
+    let insideY = curY + 50;
     ctx.font = '700 28px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
-    ctx.fillText('🌌 音檔 ②｜15分鐘 高聲波潛意識調變音檔（隱形能量版）', 120, insideY);
+    ctx.fillText('🌌 音檔 ②｜15分鐘 高頻音潛意識調變音檔（隱形能量版）', 120, insideY);
 
     insideY += 45;
     ctx.font = '400 22px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#222023';
     ctx.fillText('・特色：將凱特錄製語音轉化為 17,500Hz高頻音', 120, insideY);
-    insideY += 40;
+    insideY += 38;
     ctx.fillText('・作用：繞過大腦「理性批判牆」，將下載資料直接寫入深層潛意識資料庫', 120, insideY);
 
-    // 高聲波技術說明
-    insideY += 60;
+    // 高頻音技術說明
+    insideY += 55;
     ctx.font = '700 24px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#b38b43';
-    ctx.fillText('🧬 17,500Hz Silent Subliminal 高聲波技術說明', 120, insideY);
-    insideY += 40;
+    ctx.fillText('🧬 17,500Hz Silent Subliminal 高頻音技術說明', 120, insideY);
+    insideY += 38;
     ctx.font = '400 21px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#444';
     ctx.fillText('採用 Lowery 專利技術調變，將語音推升至人耳難以察覺的極高頻音軌。雖然耳膜', 120, insideY);
@@ -837,47 +836,46 @@
 
     // 頻譜截圖渲染
     if (hasSpecImage) {
-      insideY += 45;
+      insideY += 40;
       ctx.drawImage(specImageObj, 120, insideY, 840, specImageHeight);
       insideY += specImageHeight + 35;
 
       ctx.textAlign = 'center';
       ctx.font = '500 22px "Noto Sans TC", sans-serif';
       ctx.fillStyle = '#614d75';
-      ctx.fillText('你的專屬語音隱形儲存在這裡', 540, insideY);
+      ctx.fillText('✨你的專屬17,500Hz 隱形音檔✨', 540, insideY);
       ctx.textAlign = 'left';
-      insideY += 20;
+      insideY += 15;
     }
 
-    // 專屬聆聽指南（統一風格與規範字體大小）
+    // 專屬聆聽指南
     insideY += 50;
     ctx.font = '700 26px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
     ctx.fillText('🎧 專屬聆聽指南', 120, insideY);
 
-    insideY += 45;
+    insideY += 40;
     ctx.font = '400 21px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#222023';
     insideY = wrapText(ctx, '為了讓 17,500Hz 的高頻音訊號能完整、無損地傳送到您的聽覺大腦，建議您聆聽時使用全罩式立體聲耳機、高音質耳機，或音質較細緻的家用音響', 120, insideY, 840, 32);
 
-    insideY += 15;
+    insideY += 12;
     ctx.font = '400 19px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#636066';
-    insideY = wrapText(ctx, '💡 小提醒：由於手機內建的喇叭或一般的單耳藍牙耳機，在設計上會自動過濾掉人類聽覺邊緣的高頻聲音（通常只到15,000Hz以下），這可能會讓專屬的潛意識語音無法發揮最大功效。使用效能完整的耳機聆聽，最能完美接收這份豐盛的能量喔！', 120, insideY, 840, 30);
+    insideY = wrapText(ctx, '💡 小提醒：由於手機內建的喇叭或一般的單耳藍牙耳機，在設計上會自動過濾掉人類聽覺邊緣的高頻聲音（通常只到15,000Hz以下），這可能會讓專屬的潛意識語音無法發揮最大功效。使用效能完整的耳機聆聽，最能完美接收這份豐盛的能量哦～', 120, insideY, 840, 29);
 
-    insideY += 20;
+    insideY += 16;
     ctx.font = '400 21px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#222023';
-    ctx.fillText('⚙️ 設定建議：播放時建議不要開啟「EQ音效等化器」或「高頻壓縮/省電模式」', 120, insideY);
+    insideY = wrapText(ctx, '⚙️ 設定建議：播放時建議不要開啟「EQ音效等化器」或「高頻壓縮/省電模式」', 120, insideY, 840, 32);
 
-    insideY += 45;
-    ctx.fillText('🔊 音量與聆聽時機：音量保持適中舒適即可。非常適合於「清晨醒來」或「睡前閉眼」時聆聽，', 120, insideY);
-    insideY += 32;
-    ctx.fillText('這兩個時段是大腦進入 Theta 波、顯化效果最強烈的黃金半小時', 120, insideY);
+    insideY += 12;
+    insideY = wrapText(ctx, '🔊 音量與聆聽時機：音量保持適中舒適即可。非常適合於「清晨醒來」或「睡前閉眼」時聆聽，這兩個時段是大腦進入 Theta 波、顯化效果最強烈的黃金半小時', 120, insideY, 840, 32);
 
-    curY += audio2Height + 45;
+    // 音檔 ② 與音檔下載資料之間的間距（精確控管，絕不多餘）
+    curY += audio2Height + 35;
 
-    // G. 音檔下載資料（根據條數，完全自適應白框高度，解決破圖）
+    // G. 音檔下載資料
     ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
     ctx.beginPath();
     ctx.roundRect(80, curY, 920, listHeight, 18);
@@ -901,7 +899,7 @@
       lineY += 52;
     }
 
-    curY += listHeight + 80;
+    curY += listHeight + 60;
 
     // H. 頁尾結尾語
     ctx.textAlign = 'center';
