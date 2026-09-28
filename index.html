@@ -655,7 +655,7 @@
     });
   }
 
-  // 輔助函式：文字自動換行，精確計算 Y 軸座標
+  // 輔助函式：文字自動換行，精確返回最終 Y 座標
   function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
     const words = text.split('');
     let line = '';
@@ -676,7 +676,7 @@
     return currY + lineHeight;
   }
 
-  // 3. 專屬顯化音頻說明卡生成器
+  // 3. 專屬顯化音頻說明卡生成器（雙重渲染防破圖版）
   async function generateAudioExplanationCard() {
     const clientName = document.getElementById('clientName').value.trim() || '個案';
     const textRaw = document.getElementById('sec6').value.trim();
@@ -693,7 +693,7 @@
     const canvas = document.getElementById('card-canvas');
     const ctx = canvas.getContext('2d');
 
-    // 預先加載頻譜圖片（若有上傳）
+    // 預先加載頻譜圖片
     let hasSpecImage = false;
     let specImageObj = null;
     let specImageHeight = 0;
@@ -706,19 +706,48 @@
       specImageHeight = (specImageObj.height / specImageObj.width) * 840;
     }
 
-    // 精確測算「音檔 ②」區塊的實際高度，完全移除過多留白
-    const audio2Height = 560 + (hasSpecImage ? (specImageHeight + 90) : 0);
+    // -------------------------------------------------------------
+    // 【第一階段：模擬計算各區塊真實高度】
+    // -------------------------------------------------------------
+    let simY = 0;
 
-    // 計算「音檔下載資料」區域高度
-    const listCardPadding = 120;
-    const listHeight = listCardPadding + (lines.length * 52); 
+    // 音檔 ② 內容模擬計算
+    simY += 50; // 標題
+    simY += 45 + 38; // 特色與作用
+    simY += 55 + 38 + 32; // 技術說明
+    if (hasSpecImage) {
+      simY += 40 + specImageHeight + 35 + 15;
+    }
+    simY += 50 + 40; // 聆聽指南標題與內文起點
 
-    // Canvas 總高度動態分配（緊緻縮小）
-    const totalCanvasHeight = 140 + 60 + 75 + 280 + 230 + audio2Height + listHeight + 180;
+    // 模擬計算 wrapText 行數
+    ctx.font = '400 21px "Noto Sans TC", sans-serif';
+    simY = wrapText(ctx, '為了讓 17,500Hz 的高頻音訊號能完整、無損地傳送到您的聽覺大腦，建議您聆聽時使用全罩式立體聲耳機、高音質耳機，或音質較細緻的家用音響', 120, simY, 840, 32);
+    simY += 12;
+
+    ctx.font = '400 19px "Noto Sans TC", sans-serif';
+    simY = wrapText(ctx, '💡 小提醒：由於手機內建的喇叭或一般的單耳藍牙耳機，在設計上會自動過濾掉人類聽覺邊緣的高頻聲音（通常只到15,000Hz以下），這可能會讓專屬的潛意識語音無法發揮最大功效。使用效能完整的耳機聆聽，最能完美接收這份豐盛的能量哦～', 120, simY, 840, 29);
+    simY += 16;
+
+    ctx.font = '400 21px "Noto Sans TC", sans-serif';
+    simY = wrapText(ctx, '⚙️ 設定建議：播放時建議不要開啟「EQ音效等化器」或「高頻壓縮/省電模式」', 120, simY, 840, 32);
+    simY += 12;
+
+    simY = wrapText(ctx, '🔊 音量與聆聽時機：音量保持適中舒適即可。非常適合於「清晨醒來」或「睡前閉眼」時聆聽，這兩個時段是大腦進入 Theta 波、顯化效果最強烈的黃金半小時', 120, simY, 840, 32);
+
+    const actualAudio2Height = simY + 35; // 音檔 ② 白框真實高度（加上底部留白）
+    const actualListHeight = 120 + (lines.length * 52); // 音檔下載資料真實高度
+
+    // Canvas 畫布總高度（精確伸展，底部預留 180px 空間，絕對不打到金邊框）
+    const totalCanvasHeight = 140 + 60 + 75 + 280 + 230 + actualAudio2Height + actualListHeight + 220;
 
     canvas.width = 1080;
     canvas.height = totalCanvasHeight;
 
+    // -------------------------------------------------------------
+    // 【第二階段：正式繪製 Canvas】
+    // -------------------------------------------------------------
+    
     // A. 背景漸層
     const bgGrad = ctx.createLinearGradient(0, 0, 1080, totalCanvasHeight);
     bgGrad.addColorStop(0, '#f8f5f8');
@@ -801,10 +830,10 @@
 
     curY += 230;
 
-    // F. 音檔 ② 區塊（隱形能量版，高度緊緻無多餘空白）
+    // F. 音檔 ② 區塊（動態高度完全包含所有內文，絕不破圖）
     ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
     ctx.beginPath();
-    ctx.roundRect(80, curY, 920, audio2Height, 18);
+    ctx.roundRect(80, curY, 920, actualAudio2Height, 18);
     ctx.fill();
     ctx.strokeStyle = '#614d75';
     ctx.lineWidth = 2;
@@ -872,13 +901,13 @@
     insideY += 12;
     insideY = wrapText(ctx, '🔊 音量與聆聽時機：音量保持適中舒適即可。非常適合於「清晨醒來」或「睡前閉眼」時聆聽，這兩個時段是大腦進入 Theta 波、顯化效果最強烈的黃金半小時', 120, insideY, 840, 32);
 
-    // 音檔 ② 與音檔下載資料之間的間距（精確控管，絕不多餘）
-    curY += audio2Height + 35;
+    // 音檔 ② 下方推進
+    curY += actualAudio2Height + 40;
 
     // G. 音檔下載資料
     ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
     ctx.beginPath();
-    ctx.roundRect(80, curY, 920, listHeight, 18);
+    ctx.roundRect(80, curY, 920, actualListHeight, 18);
     ctx.fill();
     ctx.strokeStyle = '#e0d4c5';
     ctx.lineWidth = 1.5;
@@ -899,9 +928,9 @@
       lineY += 52;
     }
 
-    curY += listHeight + 60;
+    curY += actualListHeight + 65;
 
-    // H. 頁尾結尾語
+    // H. 頁尾結尾語（完美置中，留有優雅安全距離，絕對不壓金邊框）
     ctx.textAlign = 'center';
     ctx.font = '500 30px "Noto Sans TC", sans-serif';
     ctx.fillStyle = '#614d75';
